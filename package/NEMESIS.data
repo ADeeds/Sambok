@@ -1,0 +1,19 @@
+[nemesis]
+version=1.1
+id=sambok
+name=Sambok
+type=application
+package-version=1.0
+short-desc="Dog-mode screen that turns on Utility Mode."
+os=any
+models=any
+
+; No [service.*] section: nothing runs unless the screen does. The APK is installed by `pm install`
+; and started by pkg-launch through the component below, which is the Activity the manifest
+; declares as com.sambok.SambokActivity and the dex carries under the same name.
+[app.0]
+kind=apk
+path=app/Sambok.apk
+package=com.sambok
+component=com.sambok/com.sambok.SambokActivity
+uid=root

@@ -1,4 +1,5 @@
 .superpowers/
 probe.txt
 build/
+dist/
 .sambok.keystore

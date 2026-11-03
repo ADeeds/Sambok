@@ -65,8 +65,15 @@ for test in "$ROOT"/tests/*Test.java; do
     echo "== $class"
     "$JAVA" -cp "$BUILD" "$class" || status=1
 done
+# Shell tests cover what does not run in the JVM: the package the packer builds.
+for test in "$ROOT"/tests/test_*.sh; do
+    [ -f "$test" ] || continue
+    found=1
+    echo "== $(basename "$test" .sh)"
+    sh "$test" || status=1
+done
 if [ "$found" -eq 0 ]; then
-    echo "run.sh: no *Test.java found" >&2
+    echo "run.sh: no tests found" >&2
     exit 2
 fi
 exit $status
