@@ -41,7 +41,7 @@ BUILD=$(mktemp -d) || exit 2
 trap 'rm -rf "$BUILD"' EXIT HUP INT TERM
 
 SOURCES=""
-for f in "$ROOT"/src/pure/*.java; do
+for f in "$ROOT"/src/pure/*.java "$ROOT"/src/car/CarState.java; do
     [ -f "$f" ] && SOURCES="$SOURCES $f"
 done
 for f in "$ROOT"/tests/*.java; do
