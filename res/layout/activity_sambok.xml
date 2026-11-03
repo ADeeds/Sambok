@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The head unit's screen is 8:3 (1920 x 720), so the split is 3:5: the driver's panel on the
+     left, the dog scene on the right. The amber strip sits above both and spans the full width.
+
+     The scene is built from plain views and shape drawables: there are no dog assets, and the
+     dog is drawn as a sleeping silhouette rather than an animation. No temperature field and no
+     colour states: this firmware publishes no cabin reading, so `Panel` stays unused. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/backdrop"
+    android:orientation="vertical">
+
+    <!-- The one warning the screen has: Utility Mode dropped, or the callbacks stopped. -->
+    <View
+        android:id="@+id/strip"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:background="@color/amber"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="3"
+            android:background="@color/panel"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingLeft="48dp"
+            android:paddingTop="32dp"
+            android:paddingRight="36dp"
+            android:paddingBottom="32dp">
+
+            <TextView
+                android:id="@+id/countdown_caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/countdown_caption"
+                android:textAllCaps="true"
+                android:textColor="@color/muted"
+                android:textSize="16sp"
+                android:visibility="invisible" />
+
+            <TextView
+                android:id="@+id/countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/countdown_unknown"
+                android:textColor="@color/ink"
+                android:textSize="56sp"
+                android:textStyle="bold"
+                android:visibility="invisible" />
+
+            <Button
+                android:id="@+id/toggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:minHeight="72dp"
+                android:text="@string/toggle_off"
+                android:textSize="22sp" />
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/status_off"
+                android:textColor="@color/muted"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/scene"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="5"
+            android:visibility="invisible">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/scene_sky" />
+
+            <View
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_gravity="top|right"
+                android:layout_marginTop="56dp"
+                android:layout_marginRight="56dp"
+                android:background="@drawable/scene_sun" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="132dp"
+                android:layout_gravity="bottom"
+                android:background="@color/ground" />
+
+            <!-- The dog: tail, legs, body, then the head over the body. -->
+            <FrameLayout
+                android:layout_width="440dp"
+                android:layout_height="300dp"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="84dp">
+
+                <View
+                    android:layout_width="100dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="bottom|left"
+                    android:layout_marginLeft="6dp"
+                    android:layout_marginBottom="104dp"
+                    android:background="@drawable/dog_body"
+                    android:rotation="30" />
+
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="104dp"
+                    android:layout_gravity="bottom|left"
+                    android:layout_marginLeft="130dp"
+                    android:background="@drawable/dog_body" />
+
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="104dp"
+                    android:layout_gravity="bottom|left"
+                    android:layout_marginLeft="240dp"
+                    android:background="@drawable/dog_body" />
+
+                <View
+                    android:layout_width="268dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="bottom|left"
+                    android:layout_marginLeft="80dp"
+                    android:layout_marginBottom="40dp"
+                    android:background="@drawable/dog_body" />
+
+                <FrameLayout
+                    android:layout_width="190dp"
+                    android:layout_height="190dp"
+                    android:layout_gravity="bottom|right"
+                    android:layout_marginRight="6dp"
+                    android:layout_marginBottom="56dp">
+
+                    <View
+                        android:layout_width="80dp"
+                        android:layout_height="96dp"
+                        android:layout_gravity="top|left"
+                        android:layout_marginLeft="4dp"
+                        android:background="@drawable/dog_ear"
+                        android:rotation="-18" />
+
+                    <View
+                        android:layout_width="80dp"
+                        android:layout_height="96dp"
+                        android:layout_gravity="top|right"
+                        android:layout_marginRight="4dp"
+                        android:background="@drawable/dog_ear"
+                        android:rotation="18" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/dog_head" />
+
+                    <View
+                        android:layout_width="116dp"
+                        android:layout_height="84dp"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/dog_snout" />
+
+                    <View
+                        android:layout_width="34dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:layout_marginBottom="34dp"
+                        android:background="@drawable/dog_dot" />
+
+                    <View
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="top|left"
+                        android:layout_marginLeft="58dp"
+                        android:layout_marginTop="74dp"
+                        android:background="@drawable/dog_dot" />
+
+                    <View
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="top|right"
+                        android:layout_marginTop="74dp"
+                        android:layout_marginRight="58dp"
+                        android:background="@drawable/dog_dot" />
+                </FrameLayout>
+            </FrameLayout>
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

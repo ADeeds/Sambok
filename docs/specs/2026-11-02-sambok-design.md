@@ -180,22 +180,19 @@ same setting Utility Mode stops at), and draw is `getPwrConsumption` (46).
 
 Split layout, at the head unit's 8:3 shape:
 
-- **Left (driver's side):** cabin temperature, the estimated Utility Mode time left, the Utility
-  Mode toggle, and a status line.
+- **Left (driver's side):** the estimated Utility Mode time left, the Utility Mode toggle, and a
+  status line.
 - **Right:** the dog scene.
-- Screen states, mutually exclusive except for the strip:
+- Screen states:
   1. **off** — Utility Mode off, toggle off, "tap to start", no dog scene.
   2. **starting** — enable sent, waiting for the state to read on (10 s deadline).
-  3. **calm** — running, cabin below the amber line.
-  4. **warm** — running, cabin at or above 85 °F.
-  5. **hot** — running, cabin at or above 100 °F.
-  The **amber strip** overlays 3–5 when Utility Mode drops or the temperature is unreadable.
-  Re-enabling after a drop that fails returns to **1**, not to a kept dog scene.
-- Colour is decided from the value **as displayed**: convert the reading to the car's unit, round
-  it to a whole degree, and compare against the threshold in that same unit, so the screen never
-  shows 84 °F while tinting amber. Thresholds are stored once in °C — **29.44** and **37.78** —
-  and rendered as 85 °F / 100 °F or 29 °C / 38 °C by that same rounding. *(My call; one stored
-  value per threshold removes the 29.4-versus-29 drift.)*
+  3. **running** — dog scene, toggle on, countdown visible.
+  The **amber strip** overlays 3 when Utility Mode drops or the callbacks go stale.
+- **No cabin temperature, so no colour states.** This firmware publishes setpoints and outside air
+  only, and the listener callback that looked like cabin temperature is vestigial. `ambientCelsius`
+  is carried but never displayed. The amber/red thresholds are therefore not drawn; `Panel` stays
+  in the tree, tested, waiting for a source. *(Ruling; the alternative was a screen that is
+  permanently amber, which is a lie rather than a warning.)*
 
 Copy, type sizes and the dog assets are left to the builder.
 

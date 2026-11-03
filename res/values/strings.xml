@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sambok</string>
+
+    <!-- Left panel -->
+    <string name="countdown_caption">Utility Mode time left</string>
+    <string name="countdown_unknown">—</string>
+
+    <string name="toggle_off">Start Utility Mode</string>
+    <string name="toggle_starting">Starting…</string>
+    <string name="toggle_on">Utility Mode on — tap to stop</string>
+
+    <string name="status_off">tap to start</string>
+    <string name="status_starting">waiting for the car…</string>
+    <string name="status_running">climate running</string>
+    <string name="status_dropped">Utility Mode has stopped</string>
+    <string name="status_stale">no update from the car</string>
+    <string name="status_failed">Utility Mode did not start — check the car is on and in Park</string>
+</resources>
