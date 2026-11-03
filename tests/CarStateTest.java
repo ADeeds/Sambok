@@ -1,3 +1,5 @@
+import com.sambok.CarState;
+
 public final class CarStateTest {
 
     public static void main(String[] args) {

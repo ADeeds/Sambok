@@ -1,3 +1,5 @@
+package com.sambok;
+
 /**
  * The left panel's colour and its warning strip.
  *

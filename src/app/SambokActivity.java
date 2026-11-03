@@ -1,3 +1,5 @@
+package com.sambok;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,16 +12,13 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.sambok.R;
-
 /**
  * The dog screen: the whole app.
  *
- * <p>It is one Activity in the default package so that it can reach {@link CarClient} and
- * {@link Countdown}, which live in the default package for the host tests' sake; the manifest
- * therefore names the class without a package. It paints the panel from the last state
- * {@link CarClient} delivered and never calls the car itself except when the driver taps the
- * toggle.
+ * <p>The whole app is the one package {@code com.sambok}, so the Activity names its neighbours
+ * directly and the manifest names the class relative to that package. It paints the panel from
+ * the last state {@link CarClient} delivered and never calls the car itself except when the driver
+ * taps the toggle.
  *
  * <p>Three screen states: {@code off} (toggle off, "tap to start"), {@code starting} (an enable
  * has been sent and the screen waits up to {@link #START_DEADLINE_MS} for the car to report it

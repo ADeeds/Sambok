@@ -1,3 +1,5 @@
+package com.sambok;
+
 /**
  * Temperature display rules.
  *

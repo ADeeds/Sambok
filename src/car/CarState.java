@@ -1,3 +1,5 @@
+package com.sambok;
+
 /**
  * The last readings the car's binder services delivered.
  *

@@ -1,3 +1,5 @@
+package com.sambok;
+
 /**
  * How long Utility Mode can keep running at the current draw.
  *
