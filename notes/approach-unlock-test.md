@@ -15,6 +15,10 @@ making the fob work again.
 
 ## Before you start
 
+```fish
+set A ~/Android/Sdk/platform-tools/adb
+```
+
 - Car parked somewhere safe; about ten minutes.
 - ADB working.
 - Key fob, plus the physical key (for locking).
@@ -25,21 +29,21 @@ making the fob work again.
 1. **Read the current settings** and write both numbers down:
 
    ```sh
-   adb shell service call com.hkmc.micom.bcm 399   # getDoor_ApproachUnlock
-   adb shell service call com.hkmc.micom.bcm 9     # getDoorLockStatus
+   $A shell service call com.hkmc.micom.bcm 399   # getDoor_ApproachUnlock
+   $A shell service call com.hkmc.micom.bcm 9     # getDoorLockStatus
    ```
 
 2. **Turn Approach Unlock on** (skip if it was already on):
 
    ```sh
-   adb shell service call com.hkmc.micom.bcm 82 i32 1
+   $A shell service call com.hkmc.micom.bcm 82 i32 1
    ```
 
 3. **Start the capture** and leave it running:
 
    ```sh
-   adb logcat -c
-   adb logcat > ~/approach-test.txt
+   $A logcat -c
+   $A logcat > ~/approach-test.txt
    ```
 
 4. **Enter Utility Mode.** Write down the exact menu path — Sambok will need it.
@@ -54,7 +58,7 @@ making the fob work again.
 8. **Poll the fob value** at the door, then around 5 m, then around 15 m:
 
    ```sh
-   adb shell service call com.hkmc.micom.bcm 54   # getFOBBatteryStatusInfo
+   $A shell service call com.hkmc.micom.bcm 54   # getFOBBatteryStatusInfo
    ```
 
    Record each number and the distance.
@@ -68,7 +72,7 @@ making the fob work again.
 10. **Put Approach Unlock back** to the value from step 1:
 
     ```sh
-    adb shell service call com.hkmc.micom.bcm 82 i32 <the original number>
+    $A shell service call com.hkmc.micom.bcm 82 i32 <the original number>
     ```
 
 ## What counts as a pass

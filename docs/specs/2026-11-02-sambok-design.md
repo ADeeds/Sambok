@@ -77,12 +77,14 @@ Verified on this firmware during the Hogsheads work:
 
 ## Approaches considered
 
-- **A single APK using the root channel.** Chosen. Every action Sambok takes is user-initiated
-  and only meaningful while its screen is up, which is exactly when an Activity is already alive
-  and root is one command away.
-- **APK plus a resident shell service.** Rejected: with the screen gone there is nothing to watch,
-  so the service would exist only to be unused.
-- **Shell only.** Rejected: it cannot draw the screen.
+- **A single APK that binds the car's services directly.** Chosen. The sensor values Sambok needs
+  are not getters at all — they are listener callbacks (`IDATCListener.onTemperatureInformation`,
+  `IHEVListener.onPwrConsumptionChanged`, `onBatteryState`), so the app has to hold a live binder
+  listener anyway. Once it is bound, the Utility Mode write is one more call on the same binder.
+  No root channel, no polling, no shell.
+- **A shell-caller using `service call`.** Rejected: it can reach the *settings* getters, but every
+  sensor read returns `-1` because the values only arrive through callbacks.
+- **APK plus a resident shell service.** Rejected: with the screen gone there is nothing to watch.
 
 ## Before any building: one platform check
 
@@ -99,19 +101,24 @@ writes to the car.)
 One Android app, installed through NEMESIS. Launching it opens a full-screen Activity that hides
 the status bar and keeps the display awake.
 
+The Activity binds `com.hkmc.micom.datc` and `com.hkmc.micom.hev` through `ServiceManager` and
+registers a listener on each. Sensor values arrive as callbacks — cabin temperature from
+`onTemperatureInformation`, draw from `onPwrConsumptionChanged`, SOC from `onBatteryState` — and
+the screen paints from the last value each callback delivered. Nothing polls, and nothing needs
+root: these services are reachable from an ordinary app, as the sibling projects already show.
+
 API 19 has no screen pinning, so the app does not try to trap the user: Home and Back behave
 normally and simply leave the dog screen. The car is locked, so the only person who can press them
 is the driver. *(My call; a kiosk mode would mean becoming the launcher or using a NEMESIS hook,
 and it buys nothing here.)*
 
 Opening the app writes nothing. The panel's Utility Mode toggle is the action and it is two-way:
-with it off the screen shows a "tap to start" line; tapping enables Utility Mode and the screen
-becomes the dog scene; tapping again turns Utility Mode off and returns to that state. A one-way
-control would not be drawn as a toggle. *(My call.)*
+with it off the screen shows a "tap to start" line; tapping turns Utility Mode on through
+`setV2XInstantRun` and the screen becomes the dog scene; tapping again turns it off and returns to
+that state. A one-way control would not be drawn as a toggle. *(My call.)*
 
-Engagement is confirmed, not assumed: after the enable call the app polls the Utility Mode state
-and only shows the dog scene once it reads as on, within a 10-second deadline. *(My call; the
-deadline is tunable on the car.)*
+Engagement is confirmed, not assumed: after the enable call the app waits for the state to read as
+on, within a 10-second deadline. *(My call; the deadline is tunable on the car.)*
 
 On launch the app reads the state before drawing. If Utility Mode is already on — the usual case,
 since leaving dog mode leaves it running — the dog scene opens directly with the toggle on. Reads
@@ -196,10 +203,9 @@ Copy, type sizes and the dog assets are left to the builder.
 
 - Discovery, in this order: the Utility Mode **state getter**, then enable and disable; the
   cabin-temperature getter **and its encoding**.
-- The countdown's three inputs: the SOC signal id behind `getHEVStatus`, the units and scale of
-  `getPwrConsumption` (46), and a **getter** for the V2X discharge limit — only the setter (57) is
-  known. If no getter exists, the cutoff has to come from the car's own settings screen or be
-  entered by hand, which changes the kiosk-free design.
+- The countdown's inputs, all from `IHEVListener` callbacks: SOC from `onBatteryState`, draw from
+  `onPwrConsumptionChanged`, and the cutoff from the V2X discharge limit — only its setter (57) is
+  known, so it is read once from the car's own screen or entered by hand.
 - The dog animation assets and how the scene is drawn at 8:3.
 - Keep-awake details. Screen pinning is decided against.
 - Whether to keep the thresholds configurable or fixed at the two values above.

@@ -17,12 +17,14 @@ If either fails, Sambok changes shape, so do these before anything else.
 
 ## Phase 1 — read-only inventory (~8 min)
 
-```sh
-A=~/Android/Sdk/platform-tools/adb
-mkdir -p ~/software/Nemesis/dump/sambok && cd ~/software/Nemesis/dump/sambok
+```fish
+set A ~/Android/Sdk/platform-tools/adb
+mkdir -p ~/software/Nemesis/dump/sambok
+cd ~/software/Nemesis/dump/sambok
 $A devices
 $A logcat -c
 $A logcat > session.log &
+set LOGPID $last_pid
 ```
 
 ```sh
@@ -113,7 +115,7 @@ automatic unlock.
 ## Phase 5 — clean up
 
 - Unlock, leave Utility Mode, restore Approach Unlock and any setting changed in Phase 3.
-- Stop the capture (`kill %1` or Ctrl-C), keep `session.log` and `~/approach-test.txt`.
+- Stop the capture (`kill $LOGPID`), keep `session.log` and `~/approach-test.txt`.
 - Note the Utility Mode menu path and anything the car did on lock.
 
 ## What to bring back
