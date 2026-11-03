@@ -111,7 +111,12 @@ public final class CarClient {
     private Binder hevListener;
     private IBinder token;
 
-    /** Binds both services and registers a listener on each; {@code onChange} runs on main. */
+    /**
+     * Binds both services and registers a listener on each; {@code onChange} runs on main.
+     *
+     * <p>Runs on the main thread before the first frame, so a rejected or failed transaction is
+     * logged and leaves the affected reading unknown rather than propagating out of here.
+     */
     public void bind(Context context, Runnable onChange) {
         // Context is not needed: system service lookups are process-wide, and the argument is part
         // of the Activity's contract.
@@ -126,6 +131,8 @@ public final class CarClient {
             if (transactListener(datc, DATC_DESCRIPTOR, DATC_REGISTER_LISTENER, datcListener,
                     token)) {
                 Log.i(TAG, "registered DATC listener");
+            } else {
+                Log.w(TAG, "DATC listener not registered");
             }
             readTemperatureUnit();
         } else {
@@ -137,6 +144,8 @@ public final class CarClient {
             hevListener = new HevListener();
             if (transactListener(hev, HEV_DESCRIPTOR, HEV_ADD_LISTENER, hevListener, null)) {
                 Log.i(TAG, "registered HEV listener");
+            } else {
+                Log.w(TAG, "HEV listener not registered");
             }
         } else {
             Log.w(TAG, "no binder for " + HEV_SERVICE);
@@ -190,10 +199,11 @@ public final class CarClient {
     /** Reads the car's own unit setting once per session; opens no write. */
     private void readTemperatureUnit() {
         Integer unit = transactForInt(datc, DATC_DESCRIPTOR, DATC_GET_TEMPERATURE_UNIT);
-        Log.i(TAG, "temperature unit " + unit);
         if (unit == null) {
+            Log.w(TAG, "temperature unit unknown");
             return;
         }
+        Log.i(TAG, "temperature unit " + unit);
         if (unit.intValue() == UNIT_CELSIUS) {
             state.isCelsius = true;
         } else if (unit.intValue() == UNIT_FAHRENHEIT) {
@@ -228,15 +238,28 @@ public final class CarClient {
     }
 
     /**
-     * Records that a callback arrived and asks the screen to repaint.
+     * Records that an HEV callback arrived, stamps freshness and asks the screen to repaint.
      *
-     * <p>One repaint is queued at a time: registering the listeners brings a burst of callbacks,
-     * and the screen only ever needs the newest state.
+     * <p>Only the HEV callbacks stamp the watermark: the DATC listener stays registered for the
+     * unit reading but repaints without refreshing it, so a chatty climate service cannot keep a
+     * silent HEV looking fresh.
      */
     private void touched() {
         synchronized (lock) {
             state.lastUpdateMs = SystemClock.uptimeMillis();
             lock.notifyAll();
+        }
+        scheduleRepaint();
+    }
+
+    /**
+     * Queues one repaint on the main thread, leaving the freshness watermark alone.
+     *
+     * <p>One repaint is queued at a time: registering the listeners brings a burst of callbacks,
+     * and the screen only ever needs the newest state.
+     */
+    private void scheduleRepaint() {
+        synchronized (lock) {
             if (repaintPending || onChange == null) {
                 return;
             }
@@ -257,7 +280,7 @@ public final class CarClient {
             service.transact(code, data, reply, 0);
             reply.readException();
             return true;
-        } catch (RemoteException e) {
+        } catch (RemoteException | RuntimeException e) {
             Log.w(TAG, "binder call " + code + " failed", e);
             return false;
         } finally {
@@ -280,7 +303,7 @@ public final class CarClient {
             service.transact(code, data, reply, 0);
             reply.readException();
             return true;
-        } catch (RemoteException e) {
+        } catch (RemoteException | RuntimeException e) {
             Log.w(TAG, "binder call " + code + " failed", e);
             return false;
         } finally {
@@ -298,7 +321,7 @@ public final class CarClient {
             service.transact(code, data, reply, 0);
             reply.readException();
             return Integer.valueOf(reply.readInt());
-        } catch (RemoteException e) {
+        } catch (RemoteException | RuntimeException e) {
             Log.w(TAG, "binder call " + code + " failed", e);
             return null;
         } finally {
@@ -332,7 +355,7 @@ public final class CarClient {
                 case DATC_ON_STATUS:
                     // A Parcelable DatcStatus; it carries no cabin reading, so only note it.
                     Log.i(TAG, "datc status");
-                    touched();
+                    scheduleRepaint();
                     return true;
                 default:
                     Log.i(TAG, "datc callback " + code);
@@ -358,7 +381,7 @@ public final class CarClient {
                     + " rearF=" + values[7] + "/" + states[7]);
             state.ambientCelsius = states[PAIR_AMBIENT_CELSIUS] == INVALID
                     ? Double.NaN : values[PAIR_AMBIENT_CELSIUS];
-            touched();
+            scheduleRepaint();
         }
     }
 

@@ -20,9 +20,11 @@ import android.widget.TextView;
  * the last state {@link CarClient} delivered and never calls the car itself except when the driver
  * taps the toggle.
  *
- * <p>Three screen states: {@code off} (toggle off, "tap to start"), {@code starting} (an enable
- * has been sent and the screen waits up to {@link #START_DEADLINE_MS} for the car to report it
- * on) and {@code running} (the dog scene, with the toggle reflecting what the car reports).
+ * <p>Four screen states: {@code connecting} (the car has not reported Utility Mode yet, so the
+ * toggle is closed and the screen waits up to {@link #START_DEADLINE_MS} for the first report),
+ * {@code off} (toggle off, "tap to start"), {@code starting} (an enable has been sent and the
+ * screen waits up to {@link #START_DEADLINE_MS} for the car to report it on) and {@code running}
+ * (the dog scene, with the toggle reflecting what the car reports).
  *
  * <p>There is no temperature field and no colour state: this firmware publishes no cabin
  * reading, so {@link Panel} is not used here.
@@ -54,7 +56,7 @@ public class SambokActivity extends Activity {
 
     /** What the toggle and the scene are showing. */
     private enum Screen {
-        OFF, STARTING, RUNNING
+        CONNECTING, OFF, STARTING, RUNNING
     }
 
     private final CarClient client = new CarClient();
@@ -67,15 +69,19 @@ public class SambokActivity extends Activity {
     private View strip;
     private View scene;
 
-    private Screen screen = Screen.OFF;
+    private Screen screen = Screen.CONNECTING;
     /** A car callback has arrived, so staleness and the countdown mean something. */
     private boolean sawCar;
-    /** The driver has tapped: the screen follows the car only when this is false. */
+    /**
+     * The driver has tapped: the screen follows the car only when this is false. Cleared as soon
+     * as the car reports a stopped Utility Mode, so it survives a pending tap and no longer.
+     */
     private boolean driverChose;
     /** A Utility Mode write is in flight; the toggle stays closed until it lands. */
     private boolean writing;
     /** The last enable did not read back as on within the deadline. */
     private boolean failed;
+    private long connectAtMs;
     private long startingAtMs;
     private int ticks;
 
@@ -105,7 +111,9 @@ public class SambokActivity extends Activity {
         });
 
         // The first frame is painted before binding, so the panel exists even if no callback ever
-        // arrives; nothing is written to the car here.
+        // arrives; nothing is written to the car here. Utility Mode is only known from a callback,
+        // so the launch state waits for one until the connect deadline runs out.
+        connectAtMs = SystemClock.uptimeMillis();
         paint();
         client.bind(this, onCarChange);
     }
@@ -155,9 +163,13 @@ public class SambokActivity extends Activity {
             if (fresh && screen == Screen.RUNNING && ticks % TICKS_PER_SAMPLE == 0) {
                 Countdown.sample(state.drawKw);
             }
-            if (screen == Screen.STARTING
-                    && SystemClock.uptimeMillis() - startingAtMs >= START_DEADLINE_MS) {
+            long now = SystemClock.uptimeMillis();
+            if (screen == Screen.STARTING && now - startingAtMs >= START_DEADLINE_MS) {
                 expireStarting();
+            } else if (screen == Screen.CONNECTING && now - connectAtMs >= START_DEADLINE_MS) {
+                // The car never reported Utility Mode: stop claiming to know and offer the tap.
+                Log.w(TAG, "no Utility Mode report within " + START_DEADLINE_MS + " ms");
+                screen = Screen.OFF;
             }
             paint();
             handler.postDelayed(this, TICK_MS);
@@ -166,7 +178,7 @@ public class SambokActivity extends Activity {
 
     /** One tap, one write: the enable or the disable, never both, never on a press-and-hold. */
     private void tap() {
-        if (writing || screen == Screen.STARTING) {
+        if (writing || screen == Screen.STARTING || screen == Screen.CONNECTING) {
             return;
         }
         if (Boolean.TRUE.equals(client.state().utilityOn)) {
@@ -238,11 +250,16 @@ public class SambokActivity extends Activity {
         paint();
     }
 
-    /** The enable ran out of its window: report the generic failure and give the car back. */
+    /**
+     * The enable ran out of its window: report the generic failure, release the toggle and give
+     * the car back. Clearing {@code writing} matters when the write itself wedged: the driver can
+     * retry instead of facing a closed toggle for the rest of the session.
+     */
     private void expireStarting() {
         Log.w(TAG, "enable not reported on within " + START_DEADLINE_MS + " ms");
         failed = true;
         driverChose = false;
+        writing = false;
         screen = Screen.OFF;
     }
 
@@ -254,12 +271,24 @@ public class SambokActivity extends Activity {
      */
     private void paint() {
         CarState state = client.state();
-        boolean on = Boolean.TRUE.equals(state.utilityOn);
+        Boolean reported = state.utilityOn;
+        boolean on = Boolean.TRUE.equals(reported);
         boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
+
+        if (Boolean.FALSE.equals(reported)) {
+            // The car has reported a stopped Utility Mode, so any tap waiting on it is over. The
+            // flag must not outlive the tap, or the screen would stop following the car.
+            driverChose = false;
+        }
 
         if (screen == Screen.STARTING) {
             if (on) {
                 screen = Screen.RUNNING;
+            }
+        } else if (screen == Screen.CONNECTING) {
+            // Nothing is claimed until the first report; the tick ends the wait if none arrives.
+            if (reported != null) {
+                screen = on ? Screen.RUNNING : Screen.OFF;
             }
         } else if (!driverChose) {
             // Launch, a failed enable or a failed disable: the car's report decides.
@@ -269,7 +298,7 @@ public class SambokActivity extends Activity {
             failed = false;
         }
 
-        toggle.setEnabled(!writing && screen != Screen.STARTING);
+        toggle.setEnabled(!writing && screen != Screen.STARTING && screen != Screen.CONNECTING);
         // The label follows the car, not the scene: after a dropped Utility Mode the scene stays
         // up but the button offers the enable again.
         toggle.setText(screen == Screen.STARTING ? R.string.toggle_starting
@@ -287,7 +316,10 @@ public class SambokActivity extends Activity {
         scene.setVisibility(screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE);
 
         int statusId;
-        if (screen == Screen.OFF) {
+        if (screen == Screen.CONNECTING) {
+            // Same wording as an enable in flight: the screen is waiting for the car either way.
+            statusId = R.string.status_starting;
+        } else if (screen == Screen.OFF) {
             statusId = failed ? R.string.status_failed : R.string.status_off;
         } else if (screen == Screen.STARTING) {
             statusId = fresh ? R.string.status_starting : R.string.status_stale;
@@ -300,8 +332,8 @@ public class SambokActivity extends Activity {
 
         // The amber strip is the only warning this version has: Utility Mode dropped while the
         // scene is up, or the callbacks stopped so the panel can no longer be trusted. It is
-        // deliberately not raised in `off`, where the screen claims nothing, nor in `starting`,
-        // which has its own deadline.
+        // deliberately not raised in `off`, where the screen claims nothing, nor in `connecting`
+        // or `starting`, which have their own deadline.
         boolean warn = screen == Screen.RUNNING && (!on || !fresh);
         strip.setVisibility(warn ? View.VISIBLE : View.GONE);
     }
