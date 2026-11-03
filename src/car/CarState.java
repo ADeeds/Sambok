@@ -28,7 +28,7 @@ public final class CarState {
     /** Utility Mode state; {@code null} when unknown. */
     public volatile Boolean utilityOn;
 
-    /** Uptime in milliseconds of the last callback, in the caller's clock. */
+    /** `SystemClock.uptimeMillis()` of the last callback. Pass the same clock to isFresh(). */
     public volatile long lastUpdateMs;
 
     public CarState(long nowMs) {
