@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The head unit's screen is 8:3 (1920 x 720), so the split is 3:5: the driver's panel on the
-     left, the dog scene on the right. The amber strip sits above both and spans the full width.
+     left, the animated scene on the right. The amber strip sits above both, full width.
 
-     The scene is built from plain views and shape drawables: there are no dog assets, and the
-     dog is drawn as a sleeping silhouette rather than an animation. No temperature field and no
-     colour states: this firmware publishes no cabin reading, so `Panel` stays unused. -->
+     The scene is a WebView showing assets/scene.svg. KitKat's WebView is Chromium, so the
+     artist's own CSS animations run unmodified — there is no frame strip and no bitmap of the
+     dog. The scene is INVISIBLE in every state except running, so when dog mode is off the
+     right-hand section is blank. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -30,7 +31,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="3"
-            android:background="@color/panel"
+            android:background="@drawable/panel_backdrop"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingLeft="48dp"
@@ -85,122 +86,18 @@
             android:layout_weight="5"
             android:visibility="invisible">
 
-            <View
+            <WebView
+                android:id="@+id/scene_view"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/scene_sky" />
+                android:background="@android:color/transparent" />
 
+            <!-- Wipes the seam where the panel's ramp meets the artwork's own background. -->
             <View
-                android:layout_width="96dp"
-                android:layout_height="96dp"
-                android:layout_gravity="top|right"
-                android:layout_marginTop="56dp"
-                android:layout_marginRight="56dp"
-                android:background="@drawable/scene_sun" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="132dp"
-                android:layout_gravity="bottom"
-                android:background="@color/ground" />
-
-            <!-- The dog: tail, legs, body, then the head over the body. -->
-            <FrameLayout
-                android:layout_width="440dp"
-                android:layout_height="300dp"
-                android:layout_gravity="bottom|center_horizontal"
-                android:layout_marginBottom="84dp">
-
-                <View
-                    android:layout_width="100dp"
-                    android:layout_height="26dp"
-                    android:layout_gravity="bottom|left"
-                    android:layout_marginLeft="6dp"
-                    android:layout_marginBottom="104dp"
-                    android:background="@drawable/dog_body"
-                    android:rotation="30" />
-
-                <View
-                    android:layout_width="56dp"
-                    android:layout_height="104dp"
-                    android:layout_gravity="bottom|left"
-                    android:layout_marginLeft="130dp"
-                    android:background="@drawable/dog_body" />
-
-                <View
-                    android:layout_width="56dp"
-                    android:layout_height="104dp"
-                    android:layout_gravity="bottom|left"
-                    android:layout_marginLeft="240dp"
-                    android:background="@drawable/dog_body" />
-
-                <View
-                    android:layout_width="268dp"
-                    android:layout_height="150dp"
-                    android:layout_gravity="bottom|left"
-                    android:layout_marginLeft="80dp"
-                    android:layout_marginBottom="40dp"
-                    android:background="@drawable/dog_body" />
-
-                <FrameLayout
-                    android:layout_width="190dp"
-                    android:layout_height="190dp"
-                    android:layout_gravity="bottom|right"
-                    android:layout_marginRight="6dp"
-                    android:layout_marginBottom="56dp">
-
-                    <View
-                        android:layout_width="80dp"
-                        android:layout_height="96dp"
-                        android:layout_gravity="top|left"
-                        android:layout_marginLeft="4dp"
-                        android:background="@drawable/dog_ear"
-                        android:rotation="-18" />
-
-                    <View
-                        android:layout_width="80dp"
-                        android:layout_height="96dp"
-                        android:layout_gravity="top|right"
-                        android:layout_marginRight="4dp"
-                        android:background="@drawable/dog_ear"
-                        android:rotation="18" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/dog_head" />
-
-                    <View
-                        android:layout_width="116dp"
-                        android:layout_height="84dp"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="8dp"
-                        android:background="@drawable/dog_snout" />
-
-                    <View
-                        android:layout_width="34dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="bottom|center_horizontal"
-                        android:layout_marginBottom="34dp"
-                        android:background="@drawable/dog_dot" />
-
-                    <View
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="top|left"
-                        android:layout_marginLeft="58dp"
-                        android:layout_marginTop="74dp"
-                        android:background="@drawable/dog_dot" />
-
-                    <View
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="top|right"
-                        android:layout_marginTop="74dp"
-                        android:layout_marginRight="58dp"
-                        android:background="@drawable/dog_dot" />
-                </FrameLayout>
-            </FrameLayout>
+                android:layout_width="28dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="left"
+                android:background="@drawable/seam_feather" />
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>

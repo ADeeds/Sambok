@@ -77,6 +77,7 @@ mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex"
     -J "$OUT/gen" \
     -M "$ROOT/AndroidManifest.xml" \
     -S "$ROOT/res" \
+    -A "$ROOT/assets" \
     -I "$PLATFORM_JAR" \
     -F "$OUT/sambok-unsigned.apk" || exit 1
 

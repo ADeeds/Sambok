@@ -1,6 +1,7 @@
 package com.sambok;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,6 +10,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -68,6 +71,12 @@ public class SambokActivity extends Activity {
     private TextView status;
     private View strip;
     private View scene;
+    /** Shows assets/scene.svg; KitKat's Chromium WebView runs the artwork's own animations. */
+    private WebView sceneView;
+    /** The artwork is playing, rather than parked on a still frame. */
+    private boolean sceneLive;
+    /** The document has loaded, so a pause/unpause injection will land. */
+    private boolean sceneReady;
 
     private Screen screen = Screen.CONNECTING;
     /** A car callback has arrived, so staleness and the countdown mean something. */
@@ -103,6 +112,26 @@ public class SambokActivity extends Activity {
         strip = findViewById(R.id.strip);
         scene = findViewById(R.id.scene);
 
+        // The scene is opaque artwork filling the pane, so nothing here needs a background.
+        sceneView = (WebView) findViewById(R.id.scene_view);
+        sceneView.setBackgroundColor(Color.TRANSPARENT);
+        sceneView.setVerticalScrollBarEnabled(false);
+        sceneView.setHorizontalScrollBarEnabled(false);
+        sceneView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        sceneView.setFocusable(false);
+        sceneView.setClickable(false);
+        sceneView.getSettings().setJavaScriptEnabled(true);
+        sceneView.getSettings().setSupportZoom(false);
+        sceneView.getSettings().setBuiltInZoomControls(false);
+        sceneView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                sceneReady = true;
+                applySceneAnimation();
+            }
+        });
+        sceneView.loadUrl("file:///android_asset/scene.svg");
+
         toggle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -126,6 +155,31 @@ public class SambokActivity extends Activity {
         handler.postDelayed(tick, TICK_MS);
     }
 
+    /**
+     * Starts or parks the artwork. KitKat's WebView is Chromium, so the SVG's own CSS keyframes run
+     * there; parking is one injected rule, which holds the drawing where it is rather than hiding
+     * it — the scene is only ever visible while dog mode runs.
+     */
+    private void setSceneLive(boolean live) {
+        if (sceneLive == live) {
+            return;
+        }
+        sceneLive = live;
+        applySceneAnimation();
+    }
+
+    private void applySceneAnimation() {
+        if (sceneView == null || !sceneReady) {
+            return;
+        }
+        String css = sceneLive ? "" : "*{animation-play-state:paused !important}";
+        String js = "(function(){var s=document.getElementById('sambok-pause');"
+                + "if(!s){s=document.createElement('style');s.id='sambok-pause';"
+                + "document.head.appendChild(s)}"
+                + "s.textContent='" + css + "'})()";
+        sceneView.evaluateJavascript(js, null);
+    }
+
     @Override
     protected void onPause() {
         handler.removeCallbacks(tick);
@@ -136,6 +190,10 @@ public class SambokActivity extends Activity {
     protected void onDestroy() {
         handler.removeCallbacks(tick);
         client.unbind();
+        if (sceneView != null) {
+            sceneView.destroy();
+            sceneView = null;
+        }
         super.onDestroy();
     }
 
@@ -336,5 +394,9 @@ public class SambokActivity extends Activity {
         // or `starting`, which have their own deadline.
         boolean warn = screen == Screen.RUNNING && (!on || !fresh);
         strip.setVisibility(warn ? View.VISIBLE : View.GONE);
+
+        // The artwork only moves while dog mode is actually running and trusted; otherwise it is a
+        // still frame, and when the screen is off the whole scene is invisible anyway.
+        setSceneLive(screen == Screen.RUNNING && !warn);
     }
 }

@@ -1,21 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The screen is read from outside the car at dusk as often as at noon: one dark palette, and
-     one amber that is the only warning colour. -->
+     one amber that is the only warning colour. The artwork carries its own colours in
+     assets/scene.svg, so nothing here describes the dog. -->
 <resources>
     <color name="backdrop">#0E1216</color>
-    <color name="panel">#161C22</color>
     <color name="ink">#F4F6F8</color>
     <color name="muted">#8D99A6</color>
     <color name="amber">#FFB300</color>
-
-    <color name="sky_top">#2B3B4E</color>
-    <color name="sky_bottom">#41566B</color>
-    <color name="ground">#23301F</color>
-    <color name="sun">#F2C063</color>
-
-    <color name="dog_body">#C08A55</color>
-    <color name="dog_head">#CE9860</color>
-    <color name="dog_ear">#9E6C3F</color>
-    <color name="dog_snout">#E6D2B4</color>
-    <color name="dog_dark">#24170E</color>
 </resources>
