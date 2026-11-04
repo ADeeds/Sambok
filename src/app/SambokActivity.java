@@ -45,6 +45,15 @@ public class SambokActivity extends Activity {
      */
     private static final double CUTOFF_PERCENT = 20.0;
 
+    /**
+     * The car reports climate draw in units of 10 W ({@code HEVFlag.DATC_CLMTPWRCNSMPTN_W}).
+     *
+     * <p>Provisional: on a run with the A/C on low and set near ambient the flag plateaued at
+     * 15-18, while the real draw is a couple of hundred watts. Confirm it against an hour of SOC
+     * drop before trusting the countdown to the minute.
+     */
+    private static final double CLIMATE_W_SCALE = 10.0;
+
     /** The pack's usable capacity in kWh for this car; a constant, not read from the car. */
     private static final double CAPACITY_KWH = 77.4;
 
@@ -211,7 +220,7 @@ public class SambokActivity extends Activity {
         if (!Double.isNaN(state.dischargeW)) {
             watts = state.dischargeW;
         } else if (!Double.isNaN(state.climateW) && !Double.isNaN(state.otherW)) {
-            watts = state.climateW + state.otherW;
+            watts = state.climateW * CLIMATE_W_SCALE + state.otherW;
         } else {
             watts = Double.NaN;
         }
@@ -249,9 +258,10 @@ public class SambokActivity extends Activity {
             if (fresh && screen == Screen.RUNNING && ticks % TICKS_PER_SAMPLE == 0) {
                 // The car pushes none of this on this unit, but it has getters for all of it.
                 client.refreshSoc();
-                Log.i(TAG, "estimate soc=" + state.socPercent + " dischargeW=" + state.dischargeW
-                        + " climateW=" + state.climateW + " otherW=" + state.otherW
-                        + " remainMin=" + state.remainingMin + " minutes=" + estimateMinutes(state));
+                Log.i(TAG, "estimate soc=" + state.socPercent + " climateRaw=" + state.climateW
+                        + " climateW=" + (state.climateW * CLIMATE_W_SCALE) + " otherW="
+                        + state.otherW + " dischargeW=" + state.dischargeW + " remainMin="
+                        + state.remainingMin + " minutes=" + estimateMinutes(state));
             }
             long now = SystemClock.uptimeMillis();
             if (screen == Screen.STARTING && now - startingAtMs >= START_DEADLINE_MS) {
