@@ -52,7 +52,7 @@ public final class CarClient {
     /** {@code IHEVService$Stub.TRANSACTION_removeListener}. */
     private static final int HEV_REMOVE_LISTENER = 2;
     /** {@code IHEVService$Stub.TRANSACTION_setV2XInstantRun}. */
-    private static final int HEV_SET_V2X_INSTANT_RUN = 56;
+    private static final int HEV_SET_UTIL_MODE = 58;
     /** {@code IHEVListener$Stub.TRANSACTION_onHEVStatusChanged}. */
     private static final int HEV_ON_STATUS = 1;
     /** {@code IHEVListener$Stub.TRANSACTION_onPwrConsumptionChanged}. */
@@ -171,12 +171,15 @@ public final class CarClient {
             Log.w(TAG, "no hev service: Utility Mode not written");
             return false;
         }
-        // Same encoding the EV app uses: 2 starts Utility Mode, 1 stops it.
-        int command = on ? 2 : 1;
-        if (!transact(service, HEV_DESCRIPTOR, HEV_SET_V2X_INSTANT_RUN, command)) {
+        // IHEVService.setUtilModeSet, transaction 58, which sends micom command 3165. The values
+        // are the ones the unit's own settings app puts on the wire, captured on the car:
+        // 2 starts Utility Mode, 0 stops it. (The reported state is a different encoding: 2 on,
+        // 1 off.)
+        int command = on ? 2 : 0;
+        if (!transact(service, HEV_DESCRIPTOR, HEV_SET_UTIL_MODE, command)) {
             return false;
         }
-        Log.i(TAG, "setV2XInstantRun(" + command + ") sent");
+        Log.i(TAG, "setUtilModeSet(" + command + ") sent");
         return awaitUtility(on);
     }
 
