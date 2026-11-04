@@ -3,7 +3,7 @@
     <string name="app_name">Sambok</string>
 
     <!-- Left panel -->
-    <string name="countdown_caption">Utility Mode time left</string>
+    <string name="countdown_caption">Dog Mode</string>
     <string name="countdown_unknown">—</string>
 
     <string name="toggle_off">Start Utility Mode</string>

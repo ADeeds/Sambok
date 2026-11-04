@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad-4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070A0E" />
+      <stop offset="60%" stop-color="#0B1017" />
+      <stop offset="100%" stop-color="#101824" />
+    </linearGradient>
+
+    <!-- Streamline Glowing Cyan Gradients -->
+    <linearGradient id="stream-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0" />
+      <stop offset="25%" stop-color="#00F0FF" stop-opacity="0.9" />
+      <stop offset="70%" stop-color="#38BDF8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="stream-grad-2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0" />
+      <stop offset="35%" stop-color="#38BDF8" stop-opacity="0.75" />
+      <stop offset="80%" stop-color="#00F0FF" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="neon-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="subtle-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Dog Sleek Shading Gradient -->
+    <linearGradient id="dog-body-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#81542C" />
+      <stop offset="50%" stop-color="#A56E3B" />
+      <stop offset="100%" stop-color="#543315" />
+    </linearGradient>
+    
+    <linearGradient id="dog-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    /* Neon Streamline Flow Animations */
+    @keyframes streamFast {
+      0% {
+        stroke-dashoffset: 1200;
+      }
+      100% {
+        stroke-dashoffset: -1200;
+      }
+    }
+
+    @keyframes streamSlow {
+      0% {
+        stroke-dashoffset: 1000;
+      }
+      100% {
+        stroke-dashoffset: -1000;
+      }
+    }
+
+    @keyframes dogRestingPulse {
+      0%, 100% {
+        transform: scale(1) translateY(0);
+      }
+      50% {
+        transform: scale(1.008) translateY(-4px);
+      }
+    }
+
+    @keyframes particleDrift {
+      0% {
+        transform: translate(0, 0);
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.9;
+      }
+      80% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(700px, 30px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulseRing {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.4;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+      }
+      100% {
+        transform: scale(0.95);
+        opacity: 0.4;
+      }
+    }
+
+    /* Assigning animation styles */
+    .stream-1 {
+      stroke-dasharray: 240 180;
+      animation: streamFast 4s linear infinite;
+    }
+    .stream-2 {
+      stroke-dasharray: 300 200;
+      animation: streamFast 3.4s linear -1.2s infinite;
+    }
+    .stream-3 {
+      stroke-dasharray: 200 250;
+      animation: streamSlow 4.8s linear -0.5s infinite;
+    }
+    .stream-4 {
+      stroke-dasharray: 320 220;
+      animation: streamFast 3.8s linear -2.1s infinite;
+    }
+    .stream-5 {
+      stroke-dasharray: 280 190;
+      animation: streamSlow 4.4s linear -1.8s infinite;
+    }
+
+    .dog-silhouette {
+      animation: dogRestingPulse 3.8s ease-in-out infinite;
+      transform-origin: 650px 520px;
+    }
+
+    .part-1 { animation: particleDrift 3.5s linear 0s infinite; }
+    .part-2 { animation: particleDrift 3s linear 1.2s infinite; }
+    .part-3 { animation: particleDrift 4s linear 2.1s infinite; }
+    .part-4 { animation: particleDrift 2.8s linear 0.7s infinite; }
+
+    .pulse-dot {
+      animation: pulseRing 2.4s ease-in-out infinite;
+      transform-origin: 80px 80px;
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="url(#bg-grad-4)" />
+
+  <!-- Subtle High-Tech Grid / Alignment Marks -->
+  <g opacity="0.12" stroke="#38BDF8" stroke-width="1">
+    <line x1="80" y1="560" x2="1120" y2="560" stroke-dasharray="8 8" />
+    <line x1="80" y1="200" x2="80" y2="560" stroke-dasharray="4 4" />
+    <line x1="1120" y1="200" x2="1120" y2="560" stroke-dasharray="4 4" />
+    <circle cx="80" cy="560" r="3" fill="#38BDF8" />
+    <circle cx="1120" cy="560" r="3" fill="#38BDF8" />
+  </g>
+
+  <!-- Ground Platform Horizon -->
+  <path d="M 0 560 L 1200 560" stroke="#1E293B" stroke-width="3" />
+  <rect x="0" y="561" width="1200" height="159" fill="#080C11" />
+  <ellipse cx="650" cy="565" rx="360" ry="22" fill="#000000" opacity="0.8" />
+
+  <!-- ==================== BACKGROUND STREAMLINES ==================== -->
+  <path d="M 40 280 C 300 240, 520 220, 720 250 C 920 280, 1060 250, 1180 230" 
+        fill="none" stroke="url(#stream-grad-1)" stroke-width="4" stroke-linecap="round" class="stream-1" opacity="0.7" />
+
+  <path d="M 40 340 C 260 300, 480 320, 680 350 C 880 380, 1020 340, 1180 310" 
+        fill="none" stroke="url(#stream-grad-2)" stroke-width="6" stroke-linecap="round" class="stream-2" filter="url(#subtle-glow)" />
+
+  <!-- ==================== HIGH-TECH SLEEK DOG ==================== -->
+  <g class="dog-silhouette">
+    <!-- Tail (Curled smoothly beside) -->
+    <path d="M 880 510 C 950 490, 1020 460, 1030 400 C 1035 370, 1010 390, 990 430 C 970 470, 910 520, 850 535 Z" fill="#693F1D" />
+
+    <!-- Hind Leg / Thigh Contour -->
+    <ellipse cx="800" cy="495" rx="90" ry="55" fill="#754721" />
+
+    <!-- Main Torso (Aerodynamic Resting Form) -->
+    <path d="M 470 500 C 470 420, 550 370, 680 380 C 820 390, 890 440, 880 535 C 880 560, 810 565, 710 565 C 570 565, 470 550, 470 500 Z" fill="url(#dog-body-grad)" />
+
+    <!-- Cyan Cool-Air Rim Lighting Highlight on Back -->
+    <path d="M 490 460 C 530 400, 640 375, 740 385 C 830 395, 870 430, 860 480 C 850 420, 790 395, 710 390 C 600 385, 520 420, 490 460 Z" fill="url(#dog-highlight)" />
+
+    <!-- Front Paws Extended -->
+    <rect x="420" y="525" width="110" height="38" rx="19" fill="#5E381A" />
+    <rect x="450" y="530" width="120" height="34" rx="17" fill="#8C5C33" />
+
+    <!-- Head & Muzzle (Facing Left into Airflow) -->
+    <g transform="translate(40, 0)">
+      <ellipse cx="440" cy="425" rx="65" ry="60" fill="#8C5C33" />
+      <!-- Snout pointing left -->
+      <path d="M 410 405 C 330 405, 305 440, 340 475 C 385 485, 435 480, 460 455 Z" fill="#C29B72" />
+      
+      <!-- Cyan rim light along nose bridge -->
+      <path d="M 425 410 C 370 410, 335 430, 330 445 C 338 433, 375 418, 425 418 Z" fill="#00F0FF" opacity="0.6" />
+
+      <!-- Minimalist Nose -->
+      <ellipse cx="324" cy="442" rx="10" ry="8" fill="#120B06" />
+
+      <!-- Sleek Peaceful Eye Line -->
+      <path d="M 378 418 Q 394 408 410 418" fill="none" stroke="#120B06" stroke-width="4" stroke-linecap="round" />
+
+      <!-- Relaxed Ear Swept Back by Airflow -->
+      <path d="M 430 385 C 475 365, 540 395, 555 450 C 540 485, 490 480, 455 450 C 435 435, 420 405, 430 385 Z" fill="#5E381A" />
+      <path d="M 445 400 C 475 385, 525 410, 535 445 C 515 465, 480 460, 460 440 Z" fill="#44260E" />
+    </g>
+  </g>
+
+  <!-- ==================== FOREGROUND STREAMLINES (WRAPPING OVER DOG) ==================== -->
+  <!-- Stream 3 (Gliding right over the dog's head and neck) -->
+  <path d="M 40 420 C 220 420, 320 380, 470 370 C 620 360, 780 375, 960 410 C 1060 430, 1130 420, 1180 410" 
+        fill="none" stroke="url(#stream-grad-1)" stroke-width="8" stroke-linecap="round" class="stream-3" filter="url(#neon-glow)" />
+
+  <!-- Stream 4 (Midline flowing across flank) -->
+  <path d="M 40 470 C 200 470, 340 460, 480 450 C 620 440, 760 450, 920 480 C 1040 500, 1120 490, 1180 480" 
+        fill="none" stroke="url(#stream-grad-2)" stroke-width="5" stroke-linecap="round" class="stream-4" />
+
+  <!-- Stream 5 (Low ground flow brushing front paws) -->
+  <path d="M 40 530 C 220 530, 350 540, 500 545 C 680 550, 850 545, 1020 540 C 1100 538, 1150 535, 1180 530" 
+        fill="none" stroke="url(#stream-grad-1)" stroke-width="4" stroke-linecap="round" class="stream-5" opacity="0.6" />
+
+  <!-- Flowing Glowing Particles / Data Points -->
+  <g class="part-1" transform="translate(120, 410)">
+    <circle cx="0" cy="0" r="3.5" fill="#00F0FF" filter="url(#neon-glow)" />
+  </g>
+  <g class="part-2" transform="translate(180, 460)">
+    <circle cx="0" cy="0" r="3" fill="#FFFFFF" filter="url(#neon-glow)" />
+  </g>
+  <g class="part-3" transform="translate(90, 360)">
+    <circle cx="0" cy="0" r="4" fill="#38BDF8" filter="url(#neon-glow)" />
+  </g>
+  <g class="part-4" transform="translate(240, 520)">
+    <circle cx="0" cy="0" r="3" fill="#00F0FF" filter="url(#neon-glow)" />
+  </g>
+
+  <!-- ==================== HIGH-TECH HUD OVERLAYS ==================== -->
+  <!-- Top Left: Climate Status Readout -->
+  <g id="hud-telemetry" transform="translate(70, 70)">
+    <!-- Cyan pulsing dot -->
+    <g class="pulse-dot">
+      <circle cx="10" cy="10" r="5" fill="#00F0FF" filter="url(#neon-glow)" />
+      <circle cx="10" cy="10" r="11" fill="none" stroke="#00F0FF" stroke-width="1.5" opacity="0.5" />
+    </g>
+    <text x="35" y="15" fill="#E0F2FE" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" letter-spacing="3">CLIMATE KEEP ACTIVE</text>
+    <text x="35" y="38" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="300" letter-spacing="1">20°C <tspan font-size="18" fill="#64748B">/ 68°F</tspan></text>
+  </g>
+
+  <!-- Top Right: Airflow Rate / Status Tag -->
+  <g transform="translate(1000, 75)" opacity="0.85">
+    <rect x="-10" y="-8" width="130" height="32" rx="16" fill="#0F172A" stroke="#1E293B" stroke-width="1.5" />
+    <text x="10" y="13" fill="#38BDF8" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" letter-spacing="1.5">FLOW OPTIMAL</text>
+  </g>
+</svg>

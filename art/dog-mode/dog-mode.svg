@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <!-- Editable, animated scene. PNG exports are transparent; the dark rectangle is preview only. -->
+  <rect id="preview-background" width="1200" height="720" fill="#0E1216"/>
+
+  <g id="scene_bg">
+    <path d="M85 611 C289 598 908 598 1115 611 Q1145 614 1145 627 Q1145 641 1115 643 C908 653 292 653 85 643 Q55 641 55 627 Q55 614 85 611Z" fill="#23301F" opacity=".5"/>
+    <ellipse cx="184" cy="620" rx="91" ry="12" fill="#0E1216" opacity=".65"/>
+    <ellipse cx="730" cy="620" rx="318" ry="16" fill="#0E1216" opacity=".65"/>
+  </g>
+
+  <g id="fan_base">
+    <path d="M174 542 H196 L201 601 H169Z" fill="#3A4652"/>
+    <path d="M158 597 H212 Q235 597 242 609 Q244 616 232 618 H137 Q125 616 128 609 Q135 597 158 597Z" fill="#3A4652"/>
+    <path d="M144 609 Q151 603 163 603 H209 Q222 603 229 609" fill="none" stroke="#6E7C8A" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+    <circle cx="185" cy="480" r="75" fill="#1B232B"/>
+  </g>
+
+  <g transform="translate(57 352)">
+    <g id="fan_blades">
+      <animateTransform attributeName="transform" type="rotate" from="0 128 128" to="360 128 128" dur="2.86s" repeatCount="indefinite"/>
+      <path d="M128 123 C119 110 110 84 116 64 C120 51 131 48 140 56 C150 66 145 94 133 124Z" fill="#9DAAB8"/>
+      <path d="M133 128 C146 119 172 110 192 116 C205 120 208 131 200 140 C190 150 162 145 132 133Z" fill="#9DAAB8"/>
+      <path d="M128 133 C137 146 146 172 140 192 C136 205 125 208 116 200 C106 190 111 162 123 132Z" fill="#9DAAB8"/>
+      <path d="M123 128 C110 137 84 146 64 140 C51 136 48 125 56 116 C66 106 94 111 124 123Z" fill="#9DAAB8"/>
+    </g>
+  </g>
+
+  <g id="fan_cage" fill="none" stroke="#6E7C8A" stroke-linecap="round">
+    <circle cx="185" cy="480" r="75" stroke-width="6"/>
+    <circle cx="185" cy="480" r="52" stroke-width="3"/>
+    <circle cx="185" cy="480" r="30" stroke-width="2.5"/>
+    <path d="M185 405 V555 M110 480 H260 M132 427 L238 533 M238 427 L132 533" stroke-width="2.5"/>
+    <circle cx="185" cy="480" r="12" fill="#2A333D" stroke-width="3"/>
+    <circle cx="185" cy="480" r="3" fill="#6E7C8A" stroke="none"/>
+  </g>
+
+  <g id="dog">
+    <g transform="translate(0 620)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1 1;1 1.018;1 1" keyTimes="0;.5;1" dur="3.2s" calcMode="spline" keySplines=".42 0 .58 1;.42 0 .58 1" repeatCount="indefinite"/>
+    <g transform="translate(0 -620)">
+    <!-- Tail emerges from the rear of the body and curls forward along the ground. -->
+    <path d="M914 524 C953 519 974 544 1001 557 C1023 568 1040 564 1045 550 C1051 535 1039 523 1027 525 C1018 527 1014 533 1012 540 C1003 522 1012 502 1032 497 C1060 490 1082 511 1081 541 C1080 575 1053 596 1019 594 C987 592 968 581 936 582Z" fill="#9E6C3F"/>
+    <!-- Rear leg and body. -->
+    <path d="M833 545 C870 529 928 541 946 568 C961 591 947 612 920 615 H842 C815 613 804 590 813 571Z" fill="#9E6C3F"/>
+    <path d="M516 538 C524 476 581 435 661 423 C744 410 846 421 902 453 C947 479 959 517 950 557 C942 591 918 608 884 610 H610 C561 610 526 592 516 565Z" fill="#C08A55"/>
+    <path d="M658 430 C715 415 793 419 843 434" fill="none" stroke="#CE9860" stroke-width="5" stroke-linecap="round" opacity=".65"/>
+    <!-- Rounded haunch leads into a paw resting on the ground. -->
+    <path d="M851 508 C895 499 925 518 926 550 C927 573 911 587 889 590 H859 C845 590 836 596 836 605 C836 612 844 617 856 617 H907" fill="none" stroke="#9E6C3F" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M854 604 Q858 610 856 616 M871 604 Q875 610 873 616" fill="none" stroke="#9E6C3F" stroke-width="3" stroke-linecap="round"/>
+    <!-- Forelegs extend towards the fan. -->
+    <path d="M642 553 C613 552 596 565 573 582 C550 600 525 599 501 600 C482 601 475 609 479 617 C482 624 492 626 505 626 H613 C651 626 674 608 689 586Z" fill="#9E6C3F"/>
+    <path d="M610 542 C588 551 573 569 549 587 C530 601 505 603 468 602 C447 602 435 609 438 618 C440 625 451 628 468 628 H584 C623 628 647 614 662 588Z" fill="#CE9860"/>
+    <path d="M467 612 Q471 618 469 625 M486 612 Q490 618 488 625 M506 612 Q510 618 508 625" fill="none" stroke="#9E6C3F" stroke-width="3" stroke-linecap="round"/>
+    <!-- Head is a left-facing profile, resting above the paws. -->
+    <path d="M465 493 C474 455 506 436 546 441 C586 445 610 474 610 513 C610 548 592 579 560 591 C535 601 502 599 477 586 C458 576 447 544 451 521Z" fill="#CE9860"/>
+    <path d="M516 448 C537 432 568 439 582 462 C595 484 590 513 579 537 C573 551 558 554 547 547 C531 536 528 516 529 497 C530 479 516 468 516 448Z" fill="#9E6C3F"/>
+    <path d="M544 458 C560 455 574 469 575 487 C577 506 570 524 563 533" fill="none" stroke="#7E5530" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+    <!-- Light muzzle, nose, closed eye and relaxed mouth. -->
+    <path d="M457 526 C450 536 443 544 431 549 C420 553 410 551 405 558 C400 566 405 578 418 582 C433 586 451 583 465 584 C482 585 496 577 498 565 C500 553 491 541 479 534 C472 530 465 527 457 526Z" fill="#E6D2B4"/>
+    <path d="M405 555 C411 552 419 553 423 558 C425 562 421 567 415 568 C409 569 403 566 402 562 C401 559 402 557 405 555Z" fill="#24170E"/>
+    <path d="M426 574 Q436 578 447 574" fill="none" stroke="#24170E" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M475 499 Q485 509 498 501" fill="none" stroke="#24170E" stroke-width="4.5" stroke-linecap="round"/>
+    <ellipse cx="500" cy="523" rx="15" ry="8" fill="#D98C7A" opacity=".28"/>
+    <path d="M484 448 Q490 442 496 440 M474 455 Q477 450 481 447" fill="none" stroke="#E6D2B4" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+    </g>
+    </g>
+    </g>
+  </g>
+
+  <g id="breeze_1" fill="none" stroke="#BFCBD8" stroke-width="5" stroke-linecap="round" opacity=".55">
+    <animateTransform attributeName="transform" type="translate" values="0 0;48 0" dur="2.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;.55;.55;0" keyTimes="0;.2;.72;1" dur="2.4s" repeatCount="indefinite"/>
+    <path d="M274 427 C299 418 325 418 350 427"/>
+  </g>
+  <g id="breeze_2" fill="none" stroke="#BFCBD8" stroke-width="5" stroke-linecap="round" opacity=".55">
+    <animateTransform attributeName="transform" type="translate" values="0 0;48 0" dur="2.4s" begin="-.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;.55;.55;0" keyTimes="0;.2;.72;1" dur="2.4s" begin="-.8s" repeatCount="indefinite"/>
+    <path d="M285 470 C312 460 341 460 369 470"/>
+  </g>
+  <g id="breeze_3" fill="none" stroke="#BFCBD8" stroke-width="5" stroke-linecap="round" opacity=".55">
+    <animateTransform attributeName="transform" type="translate" values="0 0;48 0" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;.55;.55;0" keyTimes="0;.2;.72;1" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
+    <path d="M274 512 C297 504 322 504 347 512"/>
+  </g>
+</svg>

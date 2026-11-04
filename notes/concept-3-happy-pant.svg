@@ -1,0 +1,312 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad-3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0E1216" />
+      <stop offset="100%" stop-color="#151C23" />
+    </linearGradient>
+
+    <!-- Ground Band -->
+    <linearGradient id="ground-grad-3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#23301F" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#141E12" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- Fan Metallic Gradient -->
+    <linearGradient id="fan-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8896A5" />
+      <stop offset="50%" stop-color="#6E7C8A" />
+      <stop offset="100%" stop-color="#4B5661" />
+    </linearGradient>
+
+    <!-- Breeze Arc Gradient -->
+    <linearGradient id="breeze-grad-3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#BFCBD8" stop-opacity="0" />
+      <stop offset="30%" stop-color="#BFCBD8" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#DCE4ED" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <filter id="subtle-blur">
+      <feGaussianBlur stdDeviation="2" />
+    </filter>
+  </defs>
+
+  <style>
+    /* Fan Rotation */
+    @keyframes fanSpin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Breeze Arcs Drifting Right */
+    @keyframes breezeDrift1 {
+      0% {
+        transform: translateX(0px);
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.9;
+      }
+      80% {
+        opacity: 0.7;
+      }
+      100% {
+        transform: translateX(520px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes breezeDrift2 {
+      0% {
+        transform: translateX(0px);
+        opacity: 0;
+      }
+      25% {
+        opacity: 0.85;
+      }
+      85% {
+        opacity: 0.6;
+      }
+      100% {
+        transform: translateX(560px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes breezeDrift3 {
+      0% {
+        transform: translateX(0px);
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.95;
+      }
+      75% {
+        opacity: 0.7;
+      }
+      100% {
+        transform: translateX(500px);
+        opacity: 0;
+      }
+    }
+
+    /* Dog Happy Breathing / Panting */
+    @keyframes pantingBreath {
+      0%, 100% {
+        transform: scaleY(1) translateY(0);
+      }
+      50% {
+        transform: scaleY(1.025) translateY(-4px);
+      }
+    }
+
+    @keyframes happyTongue {
+      0%, 100% {
+        transform: scaleY(1);
+      }
+      50% {
+        transform: scaleY(1.12) translateY(2px);
+      }
+    }
+
+    @keyframes earFlutter {
+      0%, 100% {
+        transform: rotate(0deg);
+      }
+      33% {
+        transform: rotate(-6deg) skewX(2deg);
+      }
+      66% {
+        transform: rotate(3deg);
+      }
+    }
+
+    @keyframes tailWagFast {
+      0%, 100% {
+        transform: rotate(0deg);
+      }
+      25% {
+        transform: rotate(-14deg);
+      }
+      75% {
+        transform: rotate(12deg);
+      }
+    }
+
+    /* Assign Animations */
+    .fan-blades-group {
+      animation: fanSpin 0.35s linear infinite;
+      transform-origin: 220px 450px;
+    }
+
+    .breeze-arc-1 {
+      animation: breezeDrift1 2.4s cubic-bezier(0.2, 0, 0.4, 1) 0s infinite;
+    }
+
+    .breeze-arc-2 {
+      animation: breezeDrift2 2.4s cubic-bezier(0.2, 0, 0.4, 1) 0.8s infinite;
+    }
+
+    .breeze-arc-3 {
+      animation: breezeDrift3 2.4s cubic-bezier(0.2, 0, 0.4, 1) 1.6s infinite;
+    }
+
+    .dog-chest-group {
+      animation: pantingBreath 1.4s ease-in-out infinite;
+      transform-origin: 750px 520px;
+    }
+
+    .dog-tongue-pant {
+      animation: happyTongue 0.7s ease-in-out infinite;
+      transform-origin: 520px 375px;
+    }
+
+    .ear-wind {
+      animation: earFlutter 0.7s ease-in-out infinite;
+      transform-origin: 590px 250px;
+    }
+
+    .dog-tail-wag {
+      animation: tailWagFast 1.2s ease-in-out infinite;
+      transform-origin: 950px 460px;
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="url(#bg-grad-3)" />
+
+  <!-- Ground Band (bottom 120px, as in brief) -->
+  <rect x="0" y="600" width="1200" height="120" fill="url(#ground-grad-3)" />
+  <line x1="0" y1="600" x2="1200" y2="600" stroke="#33472E" stroke-width="2" />
+
+  <!-- Contact Shadows -->
+  <ellipse cx="220" cy="608" rx="85" ry="12" fill="#060A0D" opacity="0.8" />
+  <ellipse cx="760" cy="610" rx="270" ry="24" fill="#060A0D" opacity="0.8" />
+
+  <!-- ==================== DESK FAN (BOTTOM-LEFT) ==================== -->
+  <g id="desk-fan">
+    <!-- Fan Base & Stem -->
+    <path d="M 140 605 C 140 592, 300 592, 300 605 Z" fill="#2A333D" stroke="#3A4652" stroke-width="3" />
+    <!-- Stem -->
+    <rect x="210" y="515" width="20" height="85" fill="#3A4652" rx="4" />
+    <polygon points="208,530 232,530 226,480 214,480" fill="#2A333D" />
+
+    <!-- Fan Cage Background -->
+    <circle cx="220" cy="450" r="105" fill="#1B232B" stroke="#3A4652" stroke-width="4" />
+
+    <!-- 4 Fan Blades (Spinning at high speed) -->
+    <g class="fan-blades-group">
+      <!-- Blade 1 (Top) -->
+      <path d="M 220 450 C 205 400, 200 370, 220 355 C 238 370, 235 400, 220 450 Z" fill="#9DAAB8" opacity="0.9" />
+      <!-- Blade 2 (Right) -->
+      <path d="M 220 450 C 270 435, 300 430, 315 450 C 300 468, 270 465, 220 450 Z" fill="#9DAAB8" opacity="0.9" />
+      <!-- Blade 3 (Bottom) -->
+      <path d="M 220 450 C 235 500, 240 530, 220 545 C 202 530, 205 500, 220 450 Z" fill="#9DAAB8" opacity="0.9" />
+      <!-- Blade 4 (Left) -->
+      <path d="M 220 450 C 170 465, 140 470, 125 450 C 140 432, 170 435, 220 450 Z" fill="#9DAAB8" opacity="0.9" />
+      <!-- Central Hub Rotor -->
+      <circle cx="220" cy="450" r="28" fill="#3A4652" />
+      <circle cx="220" cy="450" r="14" fill="#6E7C8A" />
+    </g>
+
+    <!-- Fan Cage Front Grille (Over blades) -->
+    <circle cx="220" cy="450" r="105" fill="none" stroke="#6E7C8A" stroke-width="5" />
+    <circle cx="220" cy="450" r="70" fill="none" stroke="#6E7C8A" stroke-width="3" opacity="0.8" />
+    <circle cx="220" cy="450" r="35" fill="none" stroke="#6E7C8A" stroke-width="3" opacity="0.7" />
+    <!-- Radial spokes -->
+    <line x1="220" y1="345" x2="220" y2="555" stroke="#6E7C8A" stroke-width="2.5" opacity="0.8" />
+    <line x1="115" y1="450" x2="325" y2="450" stroke="#6E7C8A" stroke-width="2.5" opacity="0.8" />
+    <line x1="146" y1="376" x2="294" y2="524" stroke="#6E7C8A" stroke-width="2" opacity="0.7" />
+    <line x1="146" y1="524" x2="294" y2="376" stroke="#6E7C8A" stroke-width="2" opacity="0.7" />
+  </g>
+
+  <!-- ==================== BREEZE ARCS (DRIFTING RIGHT) ==================== -->
+  <g class="breeze-arc-1" transform="translate(325, 410)">
+    <path d="M 0 0 C 40 -30, 80 -30, 130 0" fill="none" stroke="url(#breeze-grad-3)" stroke-width="6" stroke-linecap="round" />
+  </g>
+  <g class="breeze-arc-2" transform="translate(325, 455)">
+    <path d="M 0 0 C 50 -20, 100 -20, 160 0" fill="none" stroke="url(#breeze-grad-3)" stroke-width="8" stroke-linecap="round" />
+  </g>
+  <g class="breeze-arc-3" transform="translate(325, 500)">
+    <path d="M 0 0 C 45 -25, 90 -25, 140 0" fill="none" stroke="url(#breeze-grad-3)" stroke-width="6" stroke-linecap="round" />
+  </g>
+
+  <!-- ==================== THE DOG ==================== -->
+  <g id="dog-scene-character">
+    <!-- Waggly Tail -->
+    <g class="dog-tail-wag">
+      <path d="M 940 480 Q 1020 440 1060 360 Q 1075 320 1090 280 Q 1070 300 1045 350 Q 995 440 925 500 Z" fill="#9E6C3F" />
+      <path d="M 1060 330 Q 1085 285 1090 280 Q 1070 300 1045 350 Z" fill="#CE9860" />
+    </g>
+
+    <!-- Hind Legs / Flank (Resting) -->
+    <path d="M 830 460 C 920 460, 960 510, 950 580 C 940 605, 890 610, 840 610 C 780 610, 770 540, 790 490 Z" fill="#A87545" />
+
+    <!-- Torso / Chest with Panting Animation -->
+    <g class="dog-chest-group">
+      <!-- Body Mass -->
+      <path d="M 590 490 C 590 420, 660 380, 760 390 C 870 400, 930 450, 920 570 C 910 605, 850 610, 760 610 C 660 610, 590 570, 590 490 Z" fill="#C08A55" />
+      
+      <!-- Belly / Light Underfur -->
+      <path d="M 640 540 C 700 515, 800 520, 850 560 C 830 595, 750 605, 680 600 C 650 585, 640 560, 640 540 Z" fill="#E6D2B4" opacity="0.65" />
+
+      <!-- Paws resting forward -->
+      <path d="M 670 530 L 690 605 L 640 605 L 630 540 Z" fill="#9E6C3F" rx="12" />
+      <rect x="585" y="525" width="60" height="85" rx="24" fill="#C08A55" />
+      <ellipse cx="615" cy="605" rx="32" ry="14" fill="#C08A55" />
+      <line x1="607" y1="601" x2="607" y2="613" stroke="#24170E" stroke-width="2.5" stroke-linecap="round" opacity="0.5" />
+      <line x1="623" y1="601" x2="623" y2="613" stroke="#24170E" stroke-width="2.5" stroke-linecap="round" opacity="0.5" />
+    </g>
+
+    <!-- Ear (Back layer) -->
+    <path d="M 645 285 Q 685 260 720 300 Q 735 365 700 405 Q 670 415 645 370 Z" fill="#7E5530" />
+
+    <!-- Head & Neck -->
+    <g id="dog-head">
+      <path d="M 630 350 L 670 450 L 590 450 Z" fill="#CE9860" />
+      <!-- Head Circle -->
+      <ellipse cx="610" cy="330" rx="82" ry="78" fill="#CE9860" />
+
+      <!-- Muzzle / Snout (Pointing at fan) -->
+      <path d="M 590 320 Q 500 325 470 365 Q 475 400 530 415 Q 580 420 620 380 Z" fill="#E6D2B4" />
+
+      <!-- Nose -->
+      <path d="M 468 355 Q 460 363 466 372 Q 476 380 486 372 Q 490 363 481 355 Z" fill="#24170E" />
+      <ellipse cx="473" cy="361" rx="3" ry="2" fill="#FFFFFF" opacity="0.4" />
+
+      <!-- Happy Open Smiling Mouth -->
+      <path d="M 480 375 Q 505 400 545 390 Q 560 380 575 385" fill="none" stroke="#24170E" stroke-width="4" stroke-linecap="round" />
+      <path d="M 495 385 Q 520 415 542 390 Z" fill="#7C2D12" />
+
+      <!-- Cute Panting Pink Tongue -->
+      <g class="dog-tongue-pant">
+        <path d="M 505 388 C 505 422, 535 422, 535 388 Z" fill="#F472B6" stroke="#24170E" stroke-width="2.5" />
+        <line x1="520" y1="388" x2="520" y2="414" stroke="#DB2777" stroke-width="2" stroke-linecap="round" />
+      </g>
+
+      <!-- Eyes (Happy Arcs "^ ^") -->
+      <path d="M 535 328 Q 552 312 568 328" fill="none" stroke="#24170E" stroke-width="4.5" stroke-linecap="round" />
+      <path d="M 615 318 Q 630 305 645 318" fill="none" stroke="#24170E" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+
+      <!-- Rosy Cheeks -->
+      <ellipse cx="560" cy="355" rx="16" ry="10" fill="#D98C7A" opacity="0.3" />
+
+      <!-- Foreground Floppy Ear (Bouncing in fan breeze) -->
+      <g class="ear-wind">
+        <path d="M 585 270 Q 640 250 660 305 Q 675 385 635 435 Q 595 445 580 390 Z" fill="#9E6C3F" />
+        <path d="M 600 300 Q 635 285 650 325 Q 658 385 628 418 Q 600 420 595 375 Z" fill="#7E5530" />
+      </g>
+    </g>
+  </g>
+
+  <!-- Status HUD -->
+  <g id="hud-status" transform="translate(60, 60)" opacity="0.85">
+    <circle cx="12" cy="12" r="6" fill="#9DAAB8" />
+    <text x="30" y="17" fill="#BFCBD8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600" letter-spacing="2">FAN ACTIVE • CABIN PROTECTED</text>
+  </g>
+</svg>

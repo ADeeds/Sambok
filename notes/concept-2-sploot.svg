@@ -1,0 +1,298 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F13" />
+      <stop offset="70%" stop-color="#11171E" />
+      <stop offset="100%" stop-color="#17202A" />
+    </linearGradient>
+
+    <!-- Cool Floor / Mat -->
+    <linearGradient id="floor-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#141E28" />
+      <stop offset="50%" stop-color="#182330" />
+      <stop offset="100%" stop-color="#131B24" />
+    </linearGradient>
+
+    <!-- Cooling Ground Mist Gradients -->
+    <linearGradient id="ground-cool-1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0" />
+      <stop offset="20%" stop-color="#38BDF8" stop-opacity="0.4" />
+      <stop offset="70%" stop-color="#7DD3FC" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#BAE6FD" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="air-stream" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0" />
+      <stop offset="30%" stop-color="#38BDF8" stop-opacity="0.6" />
+      <stop offset="70%" stop-color="#E0F2FE" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Soft Glow Filter -->
+    <filter id="frost-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+    /* Sploot Animations */
+    @keyframes splootBreathe {
+      0%, 100% {
+        transform: scaleY(1) translateY(0);
+      }
+      50% {
+        transform: scaleY(1.04) translateY(-6px);
+      }
+    }
+
+    @keyframes chinRest {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-2px);
+      }
+    }
+
+    @keyframes tailThump {
+      0%, 65%, 100% {
+        transform: rotate(0deg);
+      }
+      70% {
+        transform: rotate(-10deg);
+      }
+      75% {
+        transform: rotate(6deg);
+      }
+      80% {
+        transform: rotate(-8deg);
+      }
+      85% {
+        transform: rotate(0deg);
+      }
+    }
+
+    @keyframes earSigh {
+      0%, 100% {
+        transform: rotate(0deg);
+      }
+      50% {
+        transform: rotate(2.5deg);
+      }
+    }
+
+    @keyframes groundMistFlow {
+      0% {
+        transform: translateX(-150px);
+        opacity: 0.1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateX(250px);
+        opacity: 0.05;
+      }
+    }
+
+    @keyframes coolSweep {
+      0% {
+        stroke-dashoffset: 900;
+        opacity: 0.1;
+      }
+      35% {
+        opacity: 0.75;
+      }
+      75% {
+        opacity: 0.6;
+      }
+      100% {
+        stroke-dashoffset: -900;
+        opacity: 0;
+      }
+    }
+
+    @keyframes floatZzz {
+      0% {
+        transform: translate(0, 0) scale(0.6);
+        opacity: 0;
+      }
+      30% {
+        opacity: 0.7;
+      }
+      80% {
+        opacity: 0.5;
+      }
+      100% {
+        transform: translate(40px, -60px) scale(1.1);
+        opacity: 0;
+      }
+    }
+
+    /* Assigning Classes */
+    .sploot-body {
+      animation: splootBreathe 4.2s ease-in-out infinite;
+      transform-origin: 600px 520px;
+    }
+
+    .sploot-head {
+      animation: chinRest 4.2s ease-in-out infinite;
+      transform-origin: 320px 480px;
+    }
+
+    .sploot-ear {
+      animation: earSigh 4.2s ease-in-out infinite;
+      transform-origin: 390px 410px;
+    }
+
+    .sploot-tail {
+      animation: tailThump 4.8s ease-in-out infinite;
+      transform-origin: 870px 470px;
+    }
+
+    .mist-1 { animation: groundMistFlow 6s linear infinite; }
+    .mist-2 { animation: groundMistFlow 7.5s linear -2.5s infinite; }
+
+    .cool-arc-1 {
+      stroke-dasharray: 450 300;
+      animation: coolSweep 3.8s ease-in-out infinite;
+    }
+
+    .cool-arc-2 {
+      stroke-dasharray: 500 350;
+      animation: coolSweep 4.2s ease-in-out -1.6s infinite;
+    }
+
+    .zzz-1 { animation: floatZzz 4s ease-out 0s infinite; }
+    .zzz-2 { animation: floatZzz 4s ease-out 1.8s infinite; }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="url(#bg-grad)" />
+
+  <!-- Car Back Seat / Flat Floor Bed -->
+  <rect x="0" y="470" width="1200" height="250" fill="url(#floor-grad)" />
+  <line x1="0" y1="470" x2="1200" y2="470" stroke="#263442" stroke-width="3" />
+
+  <!-- Ambient Ground Chill Mist (Floating across floor) -->
+  <g class="mist-1">
+    <ellipse cx="500" cy="510" rx="420" ry="25" fill="url(#ground-cool-1)" />
+  </g>
+  <g class="mist-2">
+    <ellipse cx="650" cy="525" rx="380" ry="20" fill="url(#ground-cool-1)" />
+  </g>
+
+  <!-- Deep Soft Floor Contact Shadow -->
+  <ellipse cx="600" cy="520" rx="380" ry="22" fill="#070B0E" opacity="0.8" />
+
+  <!-- ==================== SPLOOT DOG ==================== -->
+  <g id="sploot-dog-group">
+    <!-- Back Hind Legs (Splooted straight back!) -->
+    <!-- Far Back Leg -->
+    <g class="sploot-back-legs">
+      <path d="M 800 470 Q 890 475 970 480 Q 995 480 1005 470 Q 1000 485 960 495 Q 880 500 800 490 Z" fill="#8C5C33" />
+      <!-- Far Paw Sole & Pads -->
+      <ellipse cx="995" cy="478" rx="8" ry="6" fill="#694020" />
+      <circle cx="988" cy="482" r="2.2" fill="#4A2810" />
+      <circle cx="995" cy="483" r="2.2" fill="#4A2810" />
+      <circle cx="1002" cy="481" r="2.2" fill="#4A2810" />
+    </g>
+
+    <!-- Tail (Resting on floor between splooted legs, wags at tip) -->
+    <g class="sploot-tail">
+      <path d="M 860 465 Q 920 460 990 465 Q 1030 468 1060 460 Q 1040 475 980 475 Q 910 475 850 472 Z" fill="#9E6C3F" />
+      <path d="M 1020 464 Q 1050 462 1060 460 Q 1040 475 1010 472 Z" fill="#CE9860" />
+    </g>
+
+    <!-- Near Back Leg (Foreground Sploot Leg) -->
+    <g>
+      <!-- Thigh -->
+      <ellipse cx="780" cy="470" rx="65" ry="38" fill="#B37B47" />
+      <!-- Extended Leg & Paw -->
+      <path d="M 800 480 Q 880 485 960 492 Q 990 494 1000 486 Q 998 502 950 508 Q 860 510 770 495 Z" fill="#C08A55" />
+      <!-- Paw Pads (The cute squishy toe beans facing up/back) -->
+      <ellipse cx="985" cy="495" rx="9" ry="7" fill="#7E5530" />
+      <circle cx="977" cy="502" r="2.5" fill="#5A361A" />
+      <circle cx="984" cy="504" r="2.5" fill="#5A361A" />
+      <circle cx="992" cy="503" r="2.5" fill="#5A361A" />
+    </g>
+
+    <!-- Torso / Belly (Flat on floor, breathing) -->
+    <g class="sploot-body">
+      <!-- Back contour (Pancake flat, completely melted) -->
+      <path d="M 440 460 C 480 425, 600 420, 720 430 C 800 435, 830 450, 830 475 C 830 505, 780 515, 640 515 C 500 515, 420 500, 420 470 C 420 462, 428 456, 440 460 Z" fill="#C08A55" />
+      
+      <!-- Top Coat Warmth Tone -->
+      <path d="M 460 450 C 520 425, 650 425, 750 435 C 720 455, 610 455, 490 460 Z" fill="#CE9860" opacity="0.8" />
+
+      <!-- Back Flank Soft Highlight -->
+      <ellipse cx="640" cy="445" rx="140" ry="18" fill="#DFC19B" opacity="0.3" />
+    </g>
+
+    <!-- Front Paws (Pushed out front flat on floor) -->
+    <!-- Far Front Paw -->
+    <path d="M 330 495 L 230 500 C 215 500, 215 512, 230 512 L 340 510 Z" fill="#9E6C3F" />
+    
+    <!-- Near Front Paw -->
+    <path d="M 370 500 L 250 508 C 235 508, 235 520, 250 520 L 390 518 Z" fill="#CE9860" />
+    <!-- Toe lines on front paw -->
+    <line x1="242" y1="511" x2="242" y2="519" stroke="#24170E" stroke-width="2" stroke-linecap="round" opacity="0.5" />
+    <line x1="252" y1="512" x2="252" y2="520" stroke="#24170E" stroke-width="2" stroke-linecap="round" opacity="0.5" />
+
+    <!-- Head & Chin resting flat on front paws -->
+    <g class="sploot-head">
+      <!-- Head Mass (Lowered, relaxed) -->
+      <ellipse cx="370" cy="460" rx="75" ry="50" fill="#CE9860" />
+
+      <!-- Squished Cheek resting on floor -->
+      <path d="M 300 480 C 270 480, 260 495, 290 508 C 340 512, 410 510, 420 485 C 415 475, 370 475, 300 480 Z" fill="#E6D2B4" />
+
+      <!-- Nose (Flat on paws level) -->
+      <ellipse cx="265" cy="492" rx="11" ry="8" fill="#24170E" />
+      <ellipse cx="263" cy="490" rx="3" ry="2" fill="#FFFFFF" opacity="0.4" />
+
+      <!-- Peaceful Closed Eye (Long relaxed curved lash) -->
+      <path d="M 335 450 Q 350 458 365 450" fill="none" stroke="#24170E" stroke-width="4" stroke-linecap="round" />
+      <!-- Subtle brow ridge -->
+      <path d="M 330 442 Q 350 438 370 443" fill="none" stroke="#9E6C3F" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+
+      <!-- Rosy Sleeping Cheek -->
+      <ellipse cx="355" cy="472" rx="18" ry="10" fill="#D98C7A" opacity="0.35" />
+
+      <!-- Ear (Draped flat backward over neck/shoulder like a cozy blanket) -->
+      <g class="sploot-ear">
+        <path d="M 390 435 C 430 420, 480 435, 510 465 C 505 485, 460 485, 415 470 C 390 460, 380 445, 390 435 Z" fill="#9E6C3F" />
+        <path d="M 405 442 C 440 430, 475 440, 495 462 C 475 475, 440 472, 415 460 Z" fill="#7E5530" />
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== FLOWING COOLING CURRENTS ==================== -->
+  <!-- Low gliding breeze over the dog's back -->
+  <path d="M 80 440 C 220 410, 420 390, 620 405 C 800 420, 960 410, 1120 430" 
+        fill="none" stroke="url(#air-stream)" stroke-width="7" stroke-linecap="round" class="cool-arc-1" />
+
+  <path d="M 120 480 C 260 450, 460 430, 680 445 C 880 460, 1020 450, 1140 460" 
+        fill="none" stroke="url(#air-stream)" stroke-width="10" stroke-linecap="round" class="cool-arc-2" />
+
+  <!-- Peaceful Floating Zzz / Chill Puffs -->
+  <g class="zzz-1" transform="translate(390, 410)">
+    <text x="0" y="0" fill="#7DD3FC" font-family="-apple-system, sans-serif" font-size="28" font-weight="bold" filter="url(#frost-glow)">z</text>
+  </g>
+  <g class="zzz-2" transform="translate(420, 380)">
+    <text x="0" y="0" fill="#BAE6FD" font-family="-apple-system, sans-serif" font-size="36" font-weight="bold" filter="url(#frost-glow)">Z</text>
+  </g>
+
+  <!-- Ambient Ice Flakes -->
+  <circle cx="280" cy="430" r="3" fill="#E0F2FE" filter="url(#frost-glow)" opacity="0.6" />
+  <circle cx="750" cy="390" r="2.5" fill="#7DD3FC" filter="url(#frost-glow)" opacity="0.5" />
+  <circle cx="920" cy="420" r="3.5" fill="#BAE6FD" filter="url(#frost-glow)" opacity="0.7" />
+
+  <!-- Status Caption -->
+  <g id="hud-status" transform="translate(60, 60)" opacity="0.85">
+    <circle cx="12" cy="12" r="6" fill="#7DD3FC" filter="url(#frost-glow)" />
+    <text x="30" y="17" fill="#BAE6FD" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600" letter-spacing="2">DOG MODE • COOLED &amp; NAPPING</text>
+  </g>
+</svg>
