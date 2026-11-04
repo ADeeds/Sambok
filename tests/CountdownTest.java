@@ -5,7 +5,9 @@ public final class CountdownTest {
     public static void main(String[] args) {
         Check.t("one hour", Countdown.format(60), "\u2248 1 h 0 m");
         Check.t("ten min rounding", Countdown.format(70), "\u2248 1 h 10 m");
-        Check.t("over a day", Countdown.format(1500), "> 1 day");
+        Check.t("just over a day", Countdown.format(1500), "\u2248 1 day");
+        Check.t("two days", Countdown.format(2880), "\u2248 2 days");
+        Check.t("three days", Countdown.format(4320), "\u2248 3 days");
         Check.t("zero", Countdown.format(0), "0");
         Check.t("unknown", Countdown.format(-1), "\u2014");
 
