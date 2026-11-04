@@ -93,6 +93,9 @@ public class SambokActivity extends Activity {
     private long connectAtMs;
     private long startingAtMs;
     private int ticks;
+    /** Last SOC and when it was seen: the draw estimate when the car pushes none. */
+    private double lastSoc = Double.NaN;
+    private long lastSocAtMs;
 
     @Override
     // FLAG_FULLSCREEN is deprecated from API 30, where the insets API replaces it; API 19 has no
@@ -197,6 +200,29 @@ public class SambokActivity extends Activity {
         super.onDestroy();
     }
 
+    /**
+     * Estimates draw in kW from how fast the state of charge falls.
+     *
+     * <p>Only used when the car reports no consumption of its own, which on this unit it does not.
+     * Crude over a handful of seconds, which is why the countdown smooths it.
+     */
+    private double drawFromSoc(double soc) {
+        long now = SystemClock.uptimeMillis();
+        double draw = Double.NaN;
+        if (!Double.isNaN(soc) && !Double.isNaN(lastSoc) && lastSocAtMs > 0) {
+            double hours = (now - lastSocAtMs) / 3600000.0;
+            double lost = lastSoc - soc;
+            if (hours > 0.0 && lost > 0.0) {
+                draw = (lost / 100.0) * CAPACITY_KWH / hours;
+            }
+        }
+        if (!Double.isNaN(soc)) {
+            lastSoc = soc;
+            lastSocAtMs = now;
+        }
+        return draw;
+    }
+
     /** Runs on the main thread whenever a car callback lands. */
     private final Runnable onCarChange = new Runnable() {
         @Override
@@ -218,8 +244,22 @@ public class SambokActivity extends Activity {
             ticks++;
             CarState state = client.state();
             boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
-            if (fresh && screen == Screen.RUNNING && ticks % TICKS_PER_SAMPLE == 0) {
-                Countdown.sample(state.drawKw);
+            if (fresh && screen == Screen.RUNNING) {
+                // This unit pushes no power consumption, and never pushes SOC either: 25 is read
+                // directly, and the draw is inferred from how fast the charge falls.
+                if (ticks % 30 == 0) {
+                    client.refreshSoc();
+                }
+                if (ticks % TICKS_PER_SAMPLE == 0) {
+                    double draw = state.drawKw;
+                    if (Double.isNaN(draw)) {
+                        draw = drawFromSoc(state.socPercent);
+                    }
+                    Countdown.sample(draw);
+                    Log.i(TAG, "countdown soc=" + state.socPercent + " draw=" + draw + " min="
+                            + Countdown.remainingMinutes(state.socPercent, CUTOFF_PERCENT,
+                                    CAPACITY_KWH));
+                }
             }
             long now = SystemClock.uptimeMillis();
             if (screen == Screen.STARTING && now - startingAtMs >= START_DEADLINE_MS) {

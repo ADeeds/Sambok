@@ -67,6 +67,8 @@ public final class CarClient {
 
     /** {@code HEVManager$HEVFlag.DISPLAY_SOC}: the battery percentage. */
     private static final int FLAG_DISPLAY_SOC = 25;
+    /** {@code IHEVService.getHEVStatus}: one int id in, one int out. */
+    private static final int HEV_GET_STATUS = 3;
     /** {@code HEVManager$HEVFlag.VCU_UTILMODUSMSTA}: Utility Mode on/off. */
     private static final int FLAG_UTIL_MODE_STATE = 80;
 
@@ -152,6 +154,29 @@ public final class CarClient {
         }
         Log.i(TAG, "bound: " + DATC_SERVICE + "=" + (datc != null) + " " + HEV_SERVICE + "="
                 + (hev != null));
+        refreshSoc();
+    }
+
+    /**
+     * Reads the display state of charge directly.
+     *
+     * <p>The car does not push it: registering the HEV listener delivered ids 36, 66, 73, 79 and
+     * 80 on this unit, never 25, and no power-consumption callback ever arrived. The keyed getter
+     * has it, so this is a read rather than a wait.
+     */
+    public void refreshSoc() {
+        IBinder service = hev;
+        if (service == null) {
+            return;
+        }
+        Integer value = transactForIntArg(service, HEV_DESCRIPTOR, HEV_GET_STATUS, FLAG_DISPLAY_SOC);
+        if (value == null) {
+            Log.w(TAG, "SOC read failed");
+            return;
+        }
+        Log.i(TAG, "soc " + value);
+        state.socPercent = value.intValue() < 0 ? Double.NaN : value.intValue();
+        touched();
     }
 
     public CarState state() {
@@ -328,6 +353,25 @@ public final class CarClient {
             return Integer.valueOf(reply.readInt());
         } catch (RemoteException | RuntimeException e) {
             Log.w(TAG, "binder call " + code + " failed", e);
+            return null;
+        } finally {
+            reply.recycle();
+            data.recycle();
+        }
+    }
+
+    /** Calls a keyed getter: one int in, one int out. */
+    private static Integer transactForIntArg(IBinder service, String descriptor, int code, int arg) {
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(descriptor);
+            data.writeInt(arg);
+            service.transact(code, data, reply, 0);
+            reply.readException();
+            return Integer.valueOf(reply.readInt());
+        } catch (RemoteException | RuntimeException e) {
+            Log.w(TAG, "binder call " + code + "(" + arg + ") failed", e);
             return null;
         } finally {
             reply.recycle();
