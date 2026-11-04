@@ -30,6 +30,22 @@ public final class CarState {
     /** Utility Mode state; {@code null} when unknown. */
     public volatile Boolean utilityOn;
 
+    /**
+     * Maps the car's Utility Mode flag to a tri-state.
+     *
+     * <p>Measured on the unit: <b>1 is off, 2 is on</b>. Reading it as a boolean makes the screen
+     * claim the opposite of the car, which is what the first on-car run showed.
+     */
+    public static Boolean utilityFromFlag(int value) {
+        if (value == 2) {
+            return Boolean.TRUE;
+        }
+        if (value == 1) {
+            return Boolean.FALSE;
+        }
+        return null;
+    }
+
     /** `SystemClock.uptimeMillis()` of the last callback. Pass the same clock to isFresh(). */
     public volatile long lastUpdateMs;
 

@@ -171,10 +171,12 @@ public final class CarClient {
             Log.w(TAG, "no hev service: Utility Mode not written");
             return false;
         }
-        if (!transact(service, HEV_DESCRIPTOR, HEV_SET_V2X_INSTANT_RUN, on ? 1 : 0)) {
+        // Same encoding the EV app uses: 2 starts Utility Mode, 1 stops it.
+        int command = on ? 2 : 1;
+        if (!transact(service, HEV_DESCRIPTOR, HEV_SET_V2X_INSTANT_RUN, command)) {
             return false;
         }
-        Log.i(TAG, "setV2XInstantRun(" + (on ? 1 : 0) + ") sent");
+        Log.i(TAG, "setV2XInstantRun(" + command + ") sent");
         return awaitUtility(on);
     }
 
@@ -413,13 +415,7 @@ public final class CarClient {
             if (flag == FLAG_DISPLAY_SOC) {
                 state.socPercent = value < 0 ? Double.NaN : value;
             } else if (flag == FLAG_UTIL_MODE_STATE) {
-                if (value == 1) {
-                    state.utilityOn = Boolean.TRUE;
-                } else if (value == 0) {
-                    state.utilityOn = Boolean.FALSE;
-                } else {
-                    state.utilityOn = null;
-                }
+                state.utilityOn = CarState.utilityFromFlag(value);
             }
             touched();
         }

@@ -1,55 +1,58 @@
 # Sambok — acceptance run (owner)
 
-The first time any of the binder code executes. Everything before this was read out of the
-firmware dump; the car is the only place the codes are real.
+The first time any of the binder code executes, and the first time the WebView artwork renders on
+the unit. Everything before this came out of the firmware dump.
 
 Package: `~/software/Sambok/dist/sambok.zip`
-Plan step: Task 6, step 5.
 
-## Before you start
+## Before you go
 
 ```fish
 set A ~/Android/Sdk/platform-tools/adb
+```
+
+Copy `dist/sambok.zip` to the root of a blank FAT32 or exFAT stick. Do not extract it. Install it
+through NEMESIS Manager, with Android running. There is no launcher icon — launch the app from
+Manager.
+
+## Start the log first
+
+```fish
 cd ~/software/Nemesis/dump/sambok
 $A logcat -c
 $A logcat > sambok-run.txt &
 set LOGPID $last_pid
 ```
 
+Keep it running for the whole session; stop it with `kill $LOGPID` at the end.
+
 ## The run
 
-1. **Install** `dist/sambok.zip` through NEMESIS, reboot, open Sambok.
-   Expect: **"waiting for the car"** with the toggle greyed out for a moment, then either the
-   dog screen (Utility Mode already on) or "tap to start". If it stays on "waiting" for 10 s and
-   then shows "tap to start", the HEV listener is not delivering `VCU_UTILMODUSMSTA`.
+1. **Open Sambok.** Expect the panel with "waiting for the car", the toggle greyed, and the
+   **right-hand section blank**. A crash here is harmless — nothing is written before a tap — and
+   the stack will be in the log.
+2. **Tap the toggle.** Expect Utility Mode to come on, the countdown to appear, and the scene to
+   appear **and animate** (breathing, ears, tail, vent).
+3. **If the panel works but the scene is blank**, that is the WebView, not the binder: grep the log
+   for `chromium`, `WebView`, `Console`.
+4. **Compare the countdown** with the EV screen's battery percentage and the V2X limit.
+5. **Lock with the physical key**, wait two minutes, look in through the window: screen still on,
+   dog still moving.
+6. **Turn Utility Mode off from the car's own menu.** Expect the amber strip, the dog frozen on a
+   still frame, and the countdown at `—`.
+7. **Tap the toggle again.** It should start again, or fail with the "could not start" line and a
+   re-enabled button.
 
-2. **Tap the toggle.**
-   Expect: the toggle locks, then the dog screen with a countdown. Nothing should happen on a
-   long press or a second tap while it is starting.
+## Greps when you are back
 
-3. **Read the countdown.** Compare with the EV screen's battery percentage and the V2X limit you
-   set. If the number is absurd, `onPwrConsumptionChanged`'s unit is not what we assumed — note
-   the raw value you see and stop.
-
-4. **Lock with the physical key**, wait two minutes, look in through the window.
-   Expect: the screen still on, still showing the countdown.
-
-5. **Turn Utility Mode off from the car's own menu**, with Sambok still open.
-   Expect: the scene stays, the amber strip appears, the countdown goes to `—`.
-
-6. **Tap the toggle again** to bring it back.
-   Expect: it starts again, or fails with the "could not start" line and a re-enabled toggle.
+```fish
+grep -iE "sambok|chromium|webview|AndroidRuntime|FATAL" sambok-run.txt | head -60
+```
 
 ## What to send back
 
 - `sambok-run.txt`
-- What step 1 showed, and how long the waiting state lasted.
+- Whether the app opened, and what the right-hand section did in each state.
 - What the countdown said, next to the car's own numbers.
-- Whether the screen stayed on while locked.
+- Whether the dog moved, and whether it stopped when the strip appeared.
 - Anything that crashed.
-
-## If it crashes at launch
-
-That is the most likely failure, and it means a transaction code is wrong. `logcat` will carry
-the exception and the service name. Nothing is written to the car before the toggle is tapped,
-so a launch crash is harmless.
