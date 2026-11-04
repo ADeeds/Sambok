@@ -67,6 +67,16 @@ public final class CarClient {
 
     /** {@code HEVManager$HEVFlag.DISPLAY_SOC}: the battery percentage. */
     private static final int FLAG_DISPLAY_SOC = 25;
+    /** {@code HEVFlag.PWR_OTHER_ECU}: non-climate load, watts. */
+    private static final int FLAG_OTHER_W = 36;
+    /** {@code HEVFlag.DATC_CLMTPWRSUM_W}: climate power, watts. */
+    private static final int FLAG_CLIMATE_SUM_W = 66;
+    /** {@code HEVFlag.DATC_CLMTPWRCNSMPTN_W}: climate consumption, watts. */
+    private static final int FLAG_CLIMATE_W = 79;
+    /** {@code HEVFlag.VCMS_V2L_EST_DISCHG_RMNTIME}: the car's own remaining-time estimate. */
+    private static final int FLAG_V2L_REMAIN = 106;
+    /** {@code HEVFlag.VCMS_PWRDIS}: total discharge, watts. */
+    private static final int FLAG_DISCHARGE_W = 108;
     /** {@code IHEVService.getHEVStatus}: one int id in, one int out. */
     private static final int HEV_GET_STATUS = 3;
     /** {@code HEVManager$HEVFlag.VCU_UTILMODUSMSTA}: Utility Mode on/off. */
@@ -169,14 +179,33 @@ public final class CarClient {
         if (service == null) {
             return;
         }
-        Integer value = transactForIntArg(service, HEV_DESCRIPTOR, HEV_GET_STATUS, FLAG_DISPLAY_SOC);
-        if (value == null) {
-            Log.w(TAG, "SOC read failed");
-            return;
+        Integer soc = read(service, FLAG_DISPLAY_SOC);
+        Integer climateW = read(service, FLAG_CLIMATE_W);
+        Integer otherW = read(service, FLAG_OTHER_W);
+        Integer dischargeW = read(service, FLAG_DISCHARGE_W);
+        Integer remain = read(service, FLAG_V2L_REMAIN);
+        Log.i(TAG, "read soc=" + soc + " climateW=" + climateW + " otherW=" + otherW
+                + " dischargeW=" + dischargeW + " remainMin=" + remain);
+        if (soc != null) {
+            state.socPercent = soc.intValue() < 0 ? Double.NaN : soc.intValue();
         }
-        Log.i(TAG, "soc " + value);
-        state.socPercent = value.intValue() < 0 ? Double.NaN : value.intValue();
+        if (climateW != null) {
+            state.climateW = climateW.intValue() < 0 ? Double.NaN : climateW.intValue();
+        }
+        if (otherW != null) {
+            state.otherW = otherW.intValue() < 0 ? Double.NaN : otherW.intValue();
+        }
+        if (dischargeW != null) {
+            state.dischargeW = dischargeW.intValue() < 0 ? Double.NaN : dischargeW.intValue();
+        }
+        if (remain != null) {
+            state.remainingMin = remain.intValue();
+        }
         touched();
+    }
+
+    private Integer read(IBinder service, int flag) {
+        return transactForIntArg(service, HEV_DESCRIPTOR, HEV_GET_STATUS, flag);
     }
 
     public CarState state() {

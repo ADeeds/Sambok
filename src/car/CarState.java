@@ -26,6 +26,14 @@ public final class CarState {
 
     /** What Utility Mode is drawing now in kW; {@code NaN} when unknown. */
     public volatile double drawKw = Double.NaN;
+    /** Climate draw in watts, as the car reports it (HEVFlag.DATC_CLMTPWRCNSMPTN_W). */
+    public volatile double climateW = Double.NaN;
+    /** Everything else drawing on the pack, in watts (HEVFlag.PWR_OTHER_ECU). */
+    public volatile double otherW = Double.NaN;
+    /** Total discharge, in watts (HEVFlag.VCMS_PWRDIS). */
+    public volatile double dischargeW = Double.NaN;
+    /** The car's own estimate of remaining discharge time, in minutes; -1 when it has none. */
+    public volatile int remainingMin = -1;
 
     /** Utility Mode state; {@code null} when unknown. */
     public volatile Boolean utilityOn;

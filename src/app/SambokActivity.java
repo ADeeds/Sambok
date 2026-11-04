@@ -93,9 +93,6 @@ public class SambokActivity extends Activity {
     private long connectAtMs;
     private long startingAtMs;
     private int ticks;
-    /** Last SOC and when it was seen: the draw estimate when the car pushes none. */
-    private double lastSoc = Double.NaN;
-    private long lastSocAtMs;
 
     @Override
     // FLAG_FULLSCREEN is deprecated from API 30, where the insets API replaces it; API 19 has no
@@ -201,26 +198,31 @@ public class SambokActivity extends Activity {
     }
 
     /**
-     * Estimates draw in kW from how fast the state of charge falls.
+     * Minutes of Utility Mode left, from the car's own estimate when it has one, otherwise from
+     * the pack's remaining energy above the cutoff divided by the watts being drawn.
      *
-     * <p>Only used when the car reports no consumption of its own, which on this unit it does not.
-     * Crude over a handful of seconds, which is why the countdown smooths it.
+     * <p>Returns -1 when nothing usable is known, which the caller renders as a dash.
      */
-    private double drawFromSoc(double soc) {
-        long now = SystemClock.uptimeMillis();
-        double draw = Double.NaN;
-        if (!Double.isNaN(soc) && !Double.isNaN(lastSoc) && lastSocAtMs > 0) {
-            double hours = (now - lastSocAtMs) / 3600000.0;
-            double lost = lastSoc - soc;
-            if (hours > 0.0 && lost > 0.0) {
-                draw = (lost / 100.0) * CAPACITY_KWH / hours;
-            }
+    private int estimateMinutes(CarState state) {
+        if (state.remainingMin > 0) {
+            return state.remainingMin;
         }
-        if (!Double.isNaN(soc)) {
-            lastSoc = soc;
-            lastSocAtMs = now;
+        double watts;
+        if (!Double.isNaN(state.dischargeW)) {
+            watts = state.dischargeW;
+        } else if (!Double.isNaN(state.climateW) && !Double.isNaN(state.otherW)) {
+            watts = state.climateW + state.otherW;
+        } else {
+            watts = Double.NaN;
         }
-        return draw;
+        if (Double.isNaN(watts) || watts <= 0.0 || Double.isNaN(state.socPercent)) {
+            return -1;
+        }
+        double kwh = (state.socPercent - CUTOFF_PERCENT) / 100.0 * CAPACITY_KWH;
+        if (kwh <= 0.0) {
+            return 0;
+        }
+        return (int) Math.round(kwh / (watts / 1000.0) * 60.0);
     }
 
     /** Runs on the main thread whenever a car callback lands. */
@@ -244,22 +246,12 @@ public class SambokActivity extends Activity {
             ticks++;
             CarState state = client.state();
             boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
-            if (fresh && screen == Screen.RUNNING) {
-                // This unit pushes no power consumption, and never pushes SOC either: 25 is read
-                // directly, and the draw is inferred from how fast the charge falls.
-                if (ticks % 30 == 0) {
-                    client.refreshSoc();
-                }
-                if (ticks % TICKS_PER_SAMPLE == 0) {
-                    double draw = state.drawKw;
-                    if (Double.isNaN(draw)) {
-                        draw = drawFromSoc(state.socPercent);
-                    }
-                    Countdown.sample(draw);
-                    Log.i(TAG, "countdown soc=" + state.socPercent + " draw=" + draw + " min="
-                            + Countdown.remainingMinutes(state.socPercent, CUTOFF_PERCENT,
-                                    CAPACITY_KWH));
-                }
+            if (fresh && screen == Screen.RUNNING && ticks % TICKS_PER_SAMPLE == 0) {
+                // The car pushes none of this on this unit, but it has getters for all of it.
+                client.refreshSoc();
+                Log.i(TAG, "estimate soc=" + state.socPercent + " dischargeW=" + state.dischargeW
+                        + " climateW=" + state.climateW + " otherW=" + state.otherW
+                        + " remainMin=" + state.remainingMin + " minutes=" + estimateMinutes(state));
             }
             long now = SystemClock.uptimeMillis();
             if (screen == Screen.STARTING && now - startingAtMs >= START_DEADLINE_MS) {
@@ -406,9 +398,7 @@ public class SambokActivity extends Activity {
         int countdownVisibility = screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE;
         countdownCaption.setVisibility(countdownVisibility);
         countdown.setVisibility(countdownVisibility);
-        countdown.setText(fresh
-                ? Countdown.format(Countdown.remainingMinutes(state.socPercent, CUTOFF_PERCENT,
-                        CAPACITY_KWH))
+        countdown.setText(fresh ? Countdown.format(estimateMinutes(state))
                 : getString(R.string.countdown_unknown));
 
         scene.setVisibility(screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE);
