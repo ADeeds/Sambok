@@ -3,6 +3,8 @@ import com.sambok.Countdown;
 public final class CountdownTest {
 
     public static void main(String[] args) {
+        Check.t("one minute", Countdown.format(1), "\u2248 1 m");
+        Check.t("forty five minutes", Countdown.format(45), "\u2248 45 m");
         Check.t("one hour", Countdown.format(60), "\u2248 1 h 0 m");
         Check.t("ten min rounding", Countdown.format(70), "\u2248 1 h 10 m");
         Check.t("just over a day", Countdown.format(1500), "\u2248 1 day");

@@ -73,6 +73,9 @@ public final class Countdown {
         if (minutes == 0) {
             return "0";
         }
+        if (minutes < 60) {
+            return "\u2248 " + minutes + " m";
+        }
         if (minutes >= DAY_MINUTES) {
             long days = Math.round(minutes / (double) DAY_MINUTES);
             if (days < 1) {
