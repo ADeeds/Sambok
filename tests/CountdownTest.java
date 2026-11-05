@@ -13,28 +13,29 @@ public final class CountdownTest {
         Check.t("zero", Countdown.format(0), "0");
         Check.t("unknown", Countdown.format(-1), "\u2014");
 
-        Check.t("no samples", Countdown.remainingMinutes(80, 20, 77.4), -1);
+        Countdown model = new Countdown();
+        Check.t("no samples", model.remainingMinutes(80, 20, 77.4), -1);
 
         // 60% of a 77.4 kWh pack is 46.44 kWh; at 1 kW that is 2786.4 minutes, rounded to 2790.
-        Countdown.sample(1.0);
-        Countdown.sample(1.0);
-        Countdown.sample(1.0);
-        Check.t("steady 1 kW", Countdown.remainingMinutes(80, 20, 77.4), 2790);
+        model.sample(1.0);
+        model.sample(1.0);
+        model.sample(1.0);
+        Check.t("steady 1 kW", model.remainingMinutes(80, 20, 77.4), 2790);
 
         // Three more samples at 3 kW: the mean must sit between 1 and 3 kW, not at either end.
         // Steady 3 kW would be 928.8 minutes, rounded to 930.
-        Countdown.sample(3.0);
-        Countdown.sample(3.0);
-        Countdown.sample(3.0);
-        int smoothed = Countdown.remainingMinutes(80, 20, 77.4);
+        model.sample(3.0);
+        model.sample(3.0);
+        model.sample(3.0);
+        int smoothed = model.remainingMinutes(80, 20, 77.4);
         Check.t("smoothed below 1 kW", smoothed < 2790, true);
         Check.t("smoothed above 3 kW", smoothed > 930, true);
 
-        Check.t("unknown soc", Countdown.remainingMinutes(Double.NaN, 20, 77.4), -1);
-        Check.t("unknown cutoff", Countdown.remainingMinutes(80, Double.NaN, 77.4), -1);
-        Check.t("unknown capacity", Countdown.remainingMinutes(80, 20, Double.NaN), -1);
-        Check.t("at cutoff", Countdown.remainingMinutes(20, 20, 77.4), 0);
-        Check.t("below cutoff", Countdown.remainingMinutes(10, 20, 77.4), 0);
+        Check.t("unknown soc", model.remainingMinutes(Double.NaN, 20, 77.4), -1);
+        Check.t("unknown cutoff", model.remainingMinutes(80, Double.NaN, 77.4), -1);
+        Check.t("unknown capacity", model.remainingMinutes(80, 20, Double.NaN), -1);
+        Check.t("at cutoff", model.remainingMinutes(20, 20, 77.4), 0);
+        Check.t("below cutoff", model.remainingMinutes(10, 20, 77.4), 0);
 
         Check.done("CountdownTest");
     }

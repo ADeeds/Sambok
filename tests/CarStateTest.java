@@ -9,7 +9,7 @@ public final class CarStateTest {
         Check.t("unknown stays NaN", Double.isNaN(new CarState(0).cabinCelsius), true);
         Check.t("unknown ambient stays NaN", Double.isNaN(new CarState(0).ambientCelsius), true);
         Check.t("unknown soc stays NaN", Double.isNaN(new CarState(0).socPercent), true);
-        Check.t("unknown draw stays NaN", Double.isNaN(new CarState(0).drawKw), true);
+        Check.t("unknown draw stays NaN", Double.isNaN(new CarState(0).drawW), true);
         Check.t("utility unknown", String.valueOf(new CarState(0).utilityOn), "null");
 
         Check.done("CarStateTest");

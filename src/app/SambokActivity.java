@@ -27,7 +27,10 @@ import android.widget.TextView;
  * toggle is closed and the screen waits up to {@link #START_DEADLINE_MS} for the first report),
  * {@code off} (toggle off, "tap to start"), {@code starting} (an enable has been sent and the
  * screen waits up to {@link #START_DEADLINE_MS} for the car to report it on) and {@code running}
- * (the dog scene, with the toggle reflecting what the car reports).
+ * (the dog scene, with the toggle reflecting what the car reports; if Utility Mode drops
+ * mid-session, the screen remains in {@code running} as a "dropped" sub-state with the scene and
+ * amber warning strip visible and the toggle offering enable again until the driver re-enables
+ * it or taps the dismiss button, which acknowledges the warning and shows {@code off}).
  *
  * <p>There is no temperature field and no colour state: this firmware publishes no cabin
  * reading, so {@link Panel} is not used here.
@@ -57,7 +60,7 @@ public class SambokActivity extends Activity {
     /** The pack's usable capacity in kWh for this car; a constant, not read from the car. */
     private static final double CAPACITY_KWH = 77.4;
 
-    /** How long an enable may take to read back as on before the screen calls it a failure. */
+    /** How long an enable or disable may take before the screen considers the write timed out. */
     private static final long START_DEADLINE_MS = 10L * 1000L;
 
     /** The screen's clock: staleness and the countdown are re-read once a second. */
@@ -72,11 +75,16 @@ public class SambokActivity extends Activity {
     }
 
     private final CarClient client = new CarClient();
+    private final Countdown countdownModel = new Countdown();
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private Button toggle;
+    /** Acknowledges the dropped warning; visible only while that warning is up. */
+    private Button dismiss;
     private TextView countdown;
     private TextView countdownCaption;
+    /** "A/C set to 73°F": the driver set-point, while Utility Mode runs and the car is fresh. */
+    private TextView setpoint;
     private TextView status;
     private View strip;
     private View scene;
@@ -97,11 +105,14 @@ public class SambokActivity extends Activity {
     private boolean driverChose;
     /** A Utility Mode write is in flight; the toggle stays closed until it lands. */
     private boolean writing;
+    /** Timestamp when the last write was sent. */
+    private long writeStartedMs;
     /** The last enable did not read back as on within the deadline. */
     private boolean failed;
     private long connectAtMs;
     private long startingAtMs;
     private int ticks;
+    private boolean destroyed;
 
     @Override
     // FLAG_FULLSCREEN is deprecated from API 30, where the insets API replaces it; API 19 has no
@@ -115,8 +126,10 @@ public class SambokActivity extends Activity {
         setContentView(R.layout.activity_sambok);
 
         toggle = (Button) findViewById(R.id.toggle);
+        dismiss = (Button) findViewById(R.id.dismiss);
         countdown = (TextView) findViewById(R.id.countdown);
         countdownCaption = (TextView) findViewById(R.id.countdown_caption);
+        setpoint = (TextView) findViewById(R.id.setpoint);
         status = (TextView) findViewById(R.id.status);
         strip = findViewById(R.id.strip);
         scene = findViewById(R.id.scene);
@@ -145,6 +158,12 @@ public class SambokActivity extends Activity {
             @Override
             public void onClick(View view) {
                 tap();
+            }
+        });
+        dismiss.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dismissDropped();
             }
         });
 
@@ -197,6 +216,7 @@ public class SambokActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        destroyed = true;
         handler.removeCallbacks(tick);
         client.unbind();
         if (sceneView != null) {
@@ -207,63 +227,66 @@ public class SambokActivity extends Activity {
     }
 
     /**
-     * Minutes of Utility Mode left, from the car's own estimate when it has one, otherwise from
-     * the pack's remaining energy above the cutoff divided by the watts being drawn.
+     * Minutes of Utility Mode left, from the car's own estimate when plausible, otherwise from
+     * the pack's remaining energy above the cutoff divided by the smoothed draw in
+     * {@link #countdownModel}.
      *
      * <p>Returns -1 when nothing usable is known, which the caller renders as a dash.
      */
     private int estimateMinutes(CarState state) {
-        if (state.remainingMin > 0) {
+        if (Estimate.plausibleCarMinutes(state.remainingMin)) {
             return state.remainingMin;
         }
-        double watts;
-        if (!Double.isNaN(state.dischargeW)) {
-            watts = state.dischargeW;
-        } else if (!Double.isNaN(state.climateW) && !Double.isNaN(state.otherW)) {
-            watts = state.climateW * CLIMATE_W_SCALE + state.otherW;
-        } else {
-            watts = Double.NaN;
-        }
-        if (Double.isNaN(watts) || watts <= 0.0 || Double.isNaN(state.socPercent)) {
-            return -1;
-        }
-        double kwh = (state.socPercent - CUTOFF_PERCENT) / 100.0 * CAPACITY_KWH;
-        if (kwh <= 0.0) {
-            return 0;
-        }
-        return (int) Math.round(kwh / (watts / 1000.0) * 60.0);
+        return countdownModel.remainingMinutes(state.socPercent, CUTOFF_PERCENT, CAPACITY_KWH);
     }
 
     /** Runs on the main thread whenever a car callback lands. */
     private final Runnable onCarChange = new Runnable() {
         @Override
         public void run() {
+            if (destroyed) {
+                return;
+            }
             sawCar = true;
             paint();
         }
     };
 
     /**
-     * The one-second tick: staleness, the countdown, the enable deadline.
+     * The one-second tick: staleness, the countdown, write deadlines, and periodic refresh.
      *
-     * <p>It reads the last {@link CarState} and nothing else. No binder call is made here, so a
-     * car service that has stopped answering cannot freeze the screen or the clock.
+     * <p>Periodic refresh requests are posted to {@link CarClient}'s worker thread rather than
+     * calling binder directly on the main thread, so a car service that has stopped answering
+     * cannot freeze the screen or the clock.
      */
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
+            if (destroyed) {
+                return;
+            }
             ticks++;
             CarState state = client.state();
-            boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
-            if (fresh && screen == Screen.RUNNING && ticks % TICKS_PER_SAMPLE == 0) {
-                // The car pushes none of this on this unit, but it has getters for all of it.
-                client.refreshSoc();
-                Log.i(TAG, "estimate soc=" + state.socPercent + " climateRaw=" + state.climateW
-                        + " climateW=" + (state.climateW * CLIMATE_W_SCALE) + " otherW="
-                        + state.otherW + " dischargeW=" + state.dischargeW + " remainMin="
-                        + state.remainingMin + " minutes=" + estimateMinutes(state));
+            if (ticks % TICKS_PER_SAMPLE == 0) {
+                // Periodically request a refresh on the worker thread so reads stay current even
+                // when callbacks stop or are missing.
+                client.requestRefresh();
+                if (screen == Screen.RUNNING) {
+                    double watts = Estimate.drawWatts(state.dischargeW, state.climateW,
+                            CLIMATE_W_SCALE, state.otherW);
+                    countdownModel.sample(watts / 1000.0);
+                    Log.i(TAG, "estimate soc=" + state.socPercent + " climateRaw=" + state.climateW
+                            + " climateW=" + (state.climateW * CLIMATE_W_SCALE) + " otherW="
+                            + state.otherW + " dischargeW=" + state.dischargeW + " remainMin="
+                            + state.remainingMin + " minutes=" + estimateMinutes(state));
+                }
             }
             long now = SystemClock.uptimeMillis();
+            if (writing && now - writeStartedMs >= START_DEADLINE_MS) {
+                Log.w(TAG, "write timed out after " + START_DEADLINE_MS + " ms");
+                writing = false;
+                driverChose = false;
+            }
             if (screen == Screen.STARTING && now - startingAtMs >= START_DEADLINE_MS) {
                 expireStarting();
             } else if (screen == Screen.CONNECTING && now - connectAtMs >= START_DEADLINE_MS) {
@@ -288,11 +311,28 @@ public class SambokActivity extends Activity {
         }
     }
 
+    /**
+     * The driver has seen the dropped warning: take the scene and the strip down and show
+     * {@code off}. Writes nothing to the car. Only acts while the car still reports Utility Mode
+     * stopped, so a stale tap cannot hide a running or unknown state; if the car later reports it
+     * on again, {@link #paint()} follows it back to {@code running}.
+     */
+    private void dismissDropped() {
+        if (destroyed || writing || screen != Screen.RUNNING
+                || !Boolean.FALSE.equals(client.state().utilityOn)) {
+            return;
+        }
+        Log.i(TAG, "tap: dismiss dropped warning");
+        screen = Screen.OFF;
+        paint();
+    }
+
     private void start() {
         Log.i(TAG, "tap: enable");
         failed = false;
         driverChose = true;
         writing = true;
+        writeStartedMs = SystemClock.uptimeMillis();
         screen = Screen.STARTING;
         startingAtMs = SystemClock.uptimeMillis();
         paint();
@@ -304,6 +344,7 @@ public class SambokActivity extends Activity {
         failed = false;
         driverChose = true;
         writing = true;
+        writeStartedMs = SystemClock.uptimeMillis();
         screen = Screen.OFF;
         paint();
         writeUtility(false);
@@ -338,6 +379,9 @@ public class SambokActivity extends Activity {
 
     /** Runs on the main thread when a write has finished, confirmed or not. */
     private void settle(boolean on, boolean confirmed) {
+        if (destroyed) {
+            return;
+        }
         writing = false;
         if (on && !confirmed) {
             // The car may still report it on: the deadline in the tick owns the outcome.
@@ -391,8 +435,16 @@ public class SambokActivity extends Activity {
                 screen = on ? Screen.RUNNING : Screen.OFF;
             }
         } else if (!driverChose) {
-            // Launch, a failed enable or a failed disable: the car's report decides.
-            screen = on ? Screen.RUNNING : Screen.OFF;
+            // Launch, a failed enable, or car status change: the car's report decides.
+            // When Utility Mode drops mid-session while running, stay in RUNNING (the dropped
+            // state: scene visible, amber strip raised via warn, status shows dropped, toggle
+            // label offers enable again since on is false). Only a driver tap (stop()) takes the
+            // screen from RUNNING to OFF.
+            if (on) {
+                screen = Screen.RUNNING;
+            } else if (screen != Screen.RUNNING) {
+                screen = Screen.OFF;
+            }
         }
         if (screen == Screen.RUNNING) {
             failed = false;
@@ -410,6 +462,17 @@ public class SambokActivity extends Activity {
         countdown.setVisibility(countdownVisibility);
         countdown.setText(fresh ? Countdown.format(estimateMinutes(state))
                 : getString(R.string.countdown_unknown));
+
+        // The set-point is only claimed while the climate is actually being run: a dropped Utility
+        // Mode still has a set-point, but "A/C set to 73°F" over a stopped climate would mislead
+        // anyone reading it through the window. Stale or implausible values hide the line too.
+        String setTo = Setpoint.format(state.setpointCelsius, state.setpointFahrenheit,
+                state.isCelsius);
+        boolean showSetpoint = screen == Screen.RUNNING && on && fresh && setTo != null;
+        if (showSetpoint) {
+            setpoint.setText(getString(R.string.setpoint, setTo));
+        }
+        setpoint.setVisibility(showSetpoint ? View.VISIBLE : View.INVISIBLE);
 
         scene.setVisibility(screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE);
 
@@ -434,6 +497,11 @@ public class SambokActivity extends Activity {
         // or `starting`, which have their own deadline.
         boolean warn = screen == Screen.RUNNING && (!on || !fresh);
         strip.setVisibility(warn ? View.VISIBLE : View.GONE);
+
+        // The dismiss button belongs to the dropped warning alone: a stale warning cannot be
+        // acknowledged away, because the screen does not know what the car is doing.
+        boolean dropped = screen == Screen.RUNNING && Boolean.FALSE.equals(reported);
+        dismiss.setVisibility(dropped && !writing ? View.VISIBLE : View.GONE);
 
         // The artwork only moves while dog mode is actually running and trusted; otherwise it is a
         // still frame, and when the screen is off the whole scene is invisible anyway.

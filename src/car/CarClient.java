@@ -3,6 +3,7 @@ package com.sambok;
 import android.content.Context;
 import android.os.Binder;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Parcel;
@@ -51,7 +52,7 @@ public final class CarClient {
     private static final int HEV_ADD_LISTENER = 1;
     /** {@code IHEVService$Stub.TRANSACTION_removeListener}. */
     private static final int HEV_REMOVE_LISTENER = 2;
-    /** {@code IHEVService$Stub.TRANSACTION_setV2XInstantRun}. */
+    /** {@code IHEVService$Stub.TRANSACTION_setUtilModeSet}. */
     private static final int HEV_SET_UTIL_MODE = 58;
     /** {@code IHEVListener$Stub.TRANSACTION_onHEVStatusChanged}. */
     private static final int HEV_ON_STATUS = 1;
@@ -91,6 +92,8 @@ public final class CarClient {
      */
     private static final int PAIRS = 8;
     private static final int PAIR_AMBIENT_CELSIUS = 4;
+    private static final int PAIR_DRIVER_CELSIUS = 0;
+    private static final int PAIR_DRIVER_FAHRENHEIT = 1;
 
     /** How long a Utility Mode write waits for the car to report the new state. */
     private static final long CONFIRM_MS = 1500;
@@ -98,8 +101,12 @@ public final class CarClient {
     /** Argument marker for a transaction that carries no int. */
     private static final int NO_ARG = Integer.MIN_VALUE;
 
+    /** How long to wait before attempting to re-bind a dead service. */
+    private static final long REBIND_INTERVAL_MS = 5000L;
+
     private final CarState state = new CarState(0L);
     private final Object lock = new Object();
+    private final Object refreshLock = new Object();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Runnable repaint = new Runnable() {
         @Override
@@ -117,30 +124,103 @@ public final class CarClient {
 
     private Runnable onChange;
     private boolean repaintPending;
-    private IBinder datc;
-    private IBinder hev;
-    private Binder datcListener;
-    private Binder hevListener;
-    private IBinder token;
+    private boolean refreshPending;
+    private volatile boolean unbound;
 
-    /**
-     * Binds both services and registers a listener on each; {@code onChange} runs on main.
-     *
-     * <p>Runs on the main thread before the first frame, so a rejected or failed transaction is
-     * logged and leaves the affected reading unknown rather than propagating out of here.
-     */
-    public void bind(Context context, Runnable onChange) {
-        // Context is not needed: system service lookups are process-wide, and the argument is part
-        // of the Activity's contract.
-        synchronized (lock) {
-            this.onChange = onChange;
+    private volatile HandlerThread workerThread;
+    private volatile Handler workerHandler;
+
+    private volatile IBinder datc;
+    private volatile IBinder hev;
+    private volatile Binder datcListener;
+    private volatile Binder hevListener;
+    private final IBinder token = new Binder();
+
+    private final IBinder.DeathRecipient datcDeathRecipient = new IBinder.DeathRecipient() {
+        @Override
+        public void binderDied() {
+            Log.w(TAG, "DATC service died");
+            datc = null;
+            datcListener = null;
+            scheduleRebindDatc();
         }
-        token = new Binder();
+    };
 
-        datc = service(DATC_SERVICE);
-        if (datc != null) {
+    private final IBinder.DeathRecipient hevDeathRecipient = new IBinder.DeathRecipient() {
+        @Override
+        public void binderDied() {
+            Log.w(TAG, "HEV service died");
+            hev = null;
+            hevListener = null;
+            scheduleRebindHev();
+        }
+    };
+
+    private void scheduleRebindDatc() {
+        if (unbound) {
+            return;
+        }
+        Handler handler = workerHandler;
+        if (handler != null) {
+            handler.removeCallbacks(rebindDatcTask);
+            handler.postDelayed(rebindDatcTask, REBIND_INTERVAL_MS);
+        }
+    }
+
+    private void scheduleRebindHev() {
+        if (unbound) {
+            return;
+        }
+        Handler handler = workerHandler;
+        if (handler != null) {
+            handler.removeCallbacks(rebindHevTask);
+            handler.postDelayed(rebindHevTask, REBIND_INTERVAL_MS);
+        }
+    }
+
+    private final Runnable rebindDatcTask = new Runnable() {
+        @Override
+        public void run() {
+            if (unbound || datc != null) {
+                return;
+            }
+            Log.i(TAG, "attempting to re-bind " + DATC_SERVICE);
+            bindDatc();
+            if (datc == null) {
+                scheduleRebindDatc();
+            }
+        }
+    };
+
+    private final Runnable rebindHevTask = new Runnable() {
+        @Override
+        public void run() {
+            if (unbound || hev != null) {
+                return;
+            }
+            Log.i(TAG, "attempting to re-bind " + HEV_SERVICE);
+            bindHev();
+            if (hev == null) {
+                scheduleRebindHev();
+            } else {
+                refresh();
+            }
+        }
+    };
+
+    private void bindDatc() {
+        IBinder service = service(DATC_SERVICE);
+        if (service != null) {
+            try {
+                service.linkToDeath(datcDeathRecipient, 0);
+            } catch (RemoteException e) {
+                Log.w(TAG, "DATC linkToDeath failed", e);
+                scheduleRebindDatc();
+                return;
+            }
+            datc = service;
             datcListener = new DatcListener();
-            if (transactListener(datc, DATC_DESCRIPTOR, DATC_REGISTER_LISTENER, datcListener,
+            if (transactListener(service, DATC_DESCRIPTOR, DATC_REGISTER_LISTENER, datcListener,
                     token)) {
                 Log.i(TAG, "registered DATC listener");
             } else {
@@ -149,32 +229,109 @@ public final class CarClient {
             readTemperatureUnit();
         } else {
             Log.w(TAG, "no binder for " + DATC_SERVICE);
+            scheduleRebindDatc();
         }
+    }
 
-        hev = service(HEV_SERVICE);
-        if (hev != null) {
+    private void bindHev() {
+        IBinder service = service(HEV_SERVICE);
+        if (service != null) {
+            try {
+                service.linkToDeath(hevDeathRecipient, 0);
+            } catch (RemoteException e) {
+                Log.w(TAG, "HEV linkToDeath failed", e);
+                scheduleRebindHev();
+                return;
+            }
+            hev = service;
             hevListener = new HevListener();
-            if (transactListener(hev, HEV_DESCRIPTOR, HEV_ADD_LISTENER, hevListener, null)) {
+            if (transactListener(service, HEV_DESCRIPTOR, HEV_ADD_LISTENER, hevListener, null)) {
                 Log.i(TAG, "registered HEV listener");
             } else {
                 Log.w(TAG, "HEV listener not registered");
             }
         } else {
             Log.w(TAG, "no binder for " + HEV_SERVICE);
+            scheduleRebindHev();
         }
-        Log.i(TAG, "bound: " + DATC_SERVICE + "=" + (datc != null) + " " + HEV_SERVICE + "="
-                + (hev != null));
-        refreshSoc();
     }
 
     /**
-     * Reads the display state of charge directly.
+     * Binds both services and registers a listener on each; {@code onChange} runs on main.
+     *
+     * <p>Starts a dedicated worker thread ("sambok-car") and posts the service lookup,
+     * registration, unit configuration read, and initial refresh onto that worker so that
+     * binder transactions never block the main thread.
+     */
+    public void bind(Context context, Runnable onChange) {
+        // Context is not needed: system service lookups are process-wide, and the argument is part
+        // of the Activity's contract.
+        synchronized (lock) {
+            this.onChange = onChange;
+        }
+        unbound = false;
+        workerThread = new HandlerThread("sambok-car");
+        workerThread.start();
+        workerHandler = new Handler(workerThread.getLooper());
+
+        workerHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (unbound) {
+                    return;
+                }
+                bindDatc();
+                bindHev();
+                Log.i(TAG, "bound: " + DATC_SERVICE + "=" + (datc != null) + " " + HEV_SERVICE + "="
+                        + (hev != null));
+                refresh();
+            }
+        });
+    }
+
+    /**
+     * Posts a {@link #refresh()} call to the worker thread, coalescing multiple requests so that
+     * at most one refresh is pending in the queue at any time.
+     */
+    public void requestRefresh() {
+        if (unbound) {
+            return;
+        }
+        synchronized (refreshLock) {
+            if (refreshPending) {
+                return;
+            }
+            Handler handler = workerHandler;
+            if (handler == null) {
+                return;
+            }
+            refreshPending = true;
+            handler.post(refreshTask);
+        }
+    }
+
+    private final Runnable refreshTask = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (refreshLock) {
+                refreshPending = false;
+            }
+            if (unbound) {
+                return;
+            }
+            refresh();
+        }
+    };
+
+    /**
+     * Reads the display state of charge directly, along with power draw and Utility Mode state.
      *
      * <p>The car does not push it: registering the HEV listener delivered ids 36, 66, 73, 79 and
      * 80 on this unit, never 25, and no power-consumption callback ever arrived. The keyed getter
-     * has it, so this is a read rather than a wait.
+     * has it, so this is a read rather than a wait. Freshness is only stamped when at least one
+     * read succeeds so an unresponsive or dead service does not self-renew.
      */
-    public void refreshSoc() {
+    public void refresh() {
         IBinder service = hev;
         if (service == null) {
             return;
@@ -184,8 +341,18 @@ public final class CarClient {
         Integer otherW = read(service, FLAG_OTHER_W);
         Integer dischargeW = read(service, FLAG_DISCHARGE_W);
         Integer remain = read(service, FLAG_V2L_REMAIN);
+        Integer utilMode = read(service, FLAG_UTIL_MODE_STATE);
+
+        boolean anyNonNull = (soc != null) || (climateW != null) || (otherW != null)
+                || (dischargeW != null) || (remain != null) || (utilMode != null);
+
+        if (!anyNonNull) {
+            Log.w(TAG, "refresh failed: all reads returned null");
+            return;
+        }
+
         Log.i(TAG, "read soc=" + soc + " climateW=" + climateW + " otherW=" + otherW
-                + " dischargeW=" + dischargeW + " remainMin=" + remain);
+                + " dischargeW=" + dischargeW + " remainMin=" + remain + " utilMode=" + utilMode);
         if (soc != null) {
             state.socPercent = soc.intValue() < 0 ? Double.NaN : soc.intValue();
         }
@@ -200,6 +367,12 @@ public final class CarClient {
         }
         if (remain != null) {
             state.remainingMin = remain.intValue();
+        }
+        if (utilMode != null) {
+            Boolean utility = CarState.utilityFromFlag(utilMode.intValue());
+            if (utility != null) {
+                state.utilityOn = utility;
+            }
         }
         touched();
     }
@@ -217,7 +390,7 @@ public final class CarClient {
      *
      * <p>Returns true only when the car has reported the matching state, which it does through the
      * HEV status callback; a write without confirmation returns false. The wait is short so a
-     * caller on the UI thread stays responsive; the screen's own settle window is longer.
+     * caller stays responsive; the screen's own settle window is longer.
      */
     public boolean setUtilityOn(boolean on) {
         IBinder service = hev;
@@ -237,27 +410,76 @@ public final class CarClient {
         return awaitUtility(on);
     }
 
-    /** Unregisters both listeners; writes nothing. */
+    /**
+     * Unregisters both listeners, unlinks death recipients, and stops the worker thread safely.
+     */
     public void unbind() {
-        if (datc != null && datcListener != null) {
-            transactListener(datc, DATC_DESCRIPTOR, DATC_UNREGISTER_LISTENER, datcListener, token);
-        }
-        if (hev != null && hevListener != null) {
-            transactListener(hev, HEV_DESCRIPTOR, HEV_REMOVE_LISTENER, hevListener, null);
-        }
+        unbound = true;
         synchronized (lock) {
             onChange = null;
+        }
+
+        IBinder d = datc;
+        if (d != null) {
+            try {
+                d.unlinkToDeath(datcDeathRecipient, 0);
+            } catch (Exception e) {
+                Log.w(TAG, "unlinkToDeath datc failed", e);
+            }
+        }
+        IBinder h = hev;
+        if (h != null) {
+            try {
+                h.unlinkToDeath(hevDeathRecipient, 0);
+            } catch (Exception e) {
+                Log.w(TAG, "unlinkToDeath hev failed", e);
+            }
+        }
+
+        Handler handler = workerHandler;
+        HandlerThread thread = workerThread;
+        if (handler != null) {
+            handler.removeCallbacks(rebindDatcTask);
+            handler.removeCallbacks(rebindHevTask);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    doUnregister();
+                }
+            });
+        }
+        if (thread != null) {
+            thread.quitSafely();
+        }
+        workerHandler = null;
+        workerThread = null;
+        Log.i(TAG, "unbound");
+    }
+
+    private void doUnregister() {
+        IBinder d = datc;
+        Binder dl = datcListener;
+        if (d != null && dl != null) {
+            transactListener(d, DATC_DESCRIPTOR, DATC_UNREGISTER_LISTENER, dl, token);
+        }
+        IBinder h = hev;
+        Binder hl = hevListener;
+        if (h != null && hl != null) {
+            transactListener(h, HEV_DESCRIPTOR, HEV_REMOVE_LISTENER, hl, null);
         }
         datc = null;
         hev = null;
         datcListener = null;
         hevListener = null;
-        Log.i(TAG, "unbound");
     }
 
     /** Reads the car's own unit setting once per session; opens no write. */
     private void readTemperatureUnit() {
-        Integer unit = transactForInt(datc, DATC_DESCRIPTOR, DATC_GET_TEMPERATURE_UNIT);
+        IBinder service = datc;
+        if (service == null) {
+            return;
+        }
+        Integer unit = transactForInt(service, DATC_DESCRIPTOR, DATC_GET_TEMPERATURE_UNIT);
         if (unit == null) {
             Log.w(TAG, "temperature unit unknown");
             return;
@@ -437,7 +659,7 @@ public final class CarClient {
                     return true;
                 default:
                     Log.i(TAG, "datc callback " + code);
-                    return false;
+                    return super.onTransact(code, data, reply, flags);
             }
         }
 
@@ -459,6 +681,10 @@ public final class CarClient {
                     + " rearF=" + values[7] + "/" + states[7]);
             state.ambientCelsius = states[PAIR_AMBIENT_CELSIUS] == INVALID
                     ? Double.NaN : values[PAIR_AMBIENT_CELSIUS];
+            // The set-points' state ints never carried INVALID on this unit (255 / 65535 only),
+            // so they are stored raw and Setpoint judges them by range.
+            state.setpointCelsius = values[PAIR_DRIVER_CELSIUS];
+            state.setpointFahrenheit = values[PAIR_DRIVER_FAHRENHEIT];
             scheduleRepaint();
         }
     }
@@ -480,7 +706,7 @@ public final class CarClient {
                     return true;
                 default:
                     Log.i(TAG, "hev callback " + code);
-                    return false;
+                    return super.onTransact(code, data, reply, flags);
             }
         }
 
@@ -499,7 +725,7 @@ public final class CarClient {
         private void readPower(Parcel data) {
             int draw = data.readInt();
             Log.i(TAG, "hev draw " + draw);
-            state.drawKw = draw < 0 ? Double.NaN : draw;
+            state.drawW = draw < 0 ? Double.NaN : draw;
             touched();
         }
     }

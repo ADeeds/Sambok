@@ -19,15 +19,15 @@ public final class Countdown {
     /** Above this many minutes the screen shows {@code > 1 day}. */
     private static final int DAY_MINUTES = 24 * 60;
 
-    private static final double[] draws = new double[WINDOW];
-    private static int next;
-    private static int count;
+    private final double[] draws = new double[WINDOW];
+    private int next;
+    private int count;
 
-    private Countdown() {
+    public Countdown() {
     }
 
     /** Appends a draw sample; a missing or non-positive reading is dropped, not averaged in. */
-    public static void sample(double drawKw) {
+    public void sample(double drawKw) {
         if (!isKnown(drawKw) || drawKw <= 0) {
             return;
         }
@@ -43,7 +43,7 @@ public final class Countdown {
      * {@code capacityKwh}, rounded to ten minutes. {@code -1} when an input is unknown,
      * {@code 0} when nothing is left.
      */
-    public static int remainingMinutes(double socPercent, double cutoffPercent, double capacityKwh) {
+    public int remainingMinutes(double socPercent, double cutoffPercent, double capacityKwh) {
         if (!isKnown(socPercent) || !isKnown(cutoffPercent)
                 || !isKnown(capacityKwh) || capacityKwh <= 0) {
             return -1;
@@ -86,7 +86,7 @@ public final class Countdown {
         return "\u2248 " + minutes / 60 + " h " + minutes % 60 + " m";
     }
 
-    private static double meanDraw() {
+    private double meanDraw() {
         if (count == 0) {
             return Double.NaN;
         }

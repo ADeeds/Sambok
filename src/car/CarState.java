@@ -21,11 +21,21 @@ public final class CarState {
     /** Outside air temperature in celsius; {@code NaN} when unknown. */
     public volatile double ambientCelsius = Double.NaN;
 
+    /**
+     * Driver climate set-point as the car sends it in celsius; {@code NaN} when unknown. The car
+     * sends the fahrenheit value separately and rounds each itself, so both are kept rather than
+     * converted.
+     */
+    public volatile double setpointCelsius = Double.NaN;
+
+    /** Driver climate set-point as the car sends it in fahrenheit; {@code NaN} when unknown. */
+    public volatile double setpointFahrenheit = Double.NaN;
+
     /** Battery state of charge in percent; {@code NaN} when unknown. */
     public volatile double socPercent = Double.NaN;
 
-    /** What Utility Mode is drawing now in kW; {@code NaN} when unknown. */
-    public volatile double drawKw = Double.NaN;
+    /** What Utility Mode is drawing now in watts; {@code NaN} when unknown. */
+    public volatile double drawW = Double.NaN;
     /** Climate draw in watts, as the car reports it (HEVFlag.DATC_CLMTPWRCNSMPTN_W). */
     public volatile double climateW = Double.NaN;
     /** Everything else drawing on the pack, in watts (HEVFlag.PWR_OTHER_ECU). */

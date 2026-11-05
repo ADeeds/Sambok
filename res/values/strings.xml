@@ -5,10 +5,14 @@
     <!-- Left panel -->
     <string name="countdown_caption">Dog Mode</string>
     <string name="countdown_unknown">—</string>
+    <!-- %1$s is the set-point with its unit, e.g. 73°F. -->
+    <string name="setpoint">A/C set to %1$s</string>
 
     <string name="toggle_off">Start Utility Mode</string>
     <string name="toggle_starting">Starting…</string>
     <string name="toggle_on">Utility Mode on — tap to stop</string>
+
+    <string name="dismiss">Dismiss warning</string>
 
     <string name="status_off">tap to start</string>
     <string name="status_starting">waiting for the car…</string>
