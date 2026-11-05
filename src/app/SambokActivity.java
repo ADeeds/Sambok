@@ -201,9 +201,14 @@ public class SambokActivity extends Activity {
             return;
         }
         String css = sceneLive ? "" : "*{animation-play-state:paused !important}";
+        // The page is an SVG document, not HTML: it has no document.head (the car logged
+        // "Cannot call method 'appendChild' of null" on every load), and a plain createElement
+        // makes a namespace-less element that is never applied as CSS. The rule therefore goes in
+        // an SVG <style> appended to the root <svg> element.
         String js = "(function(){var s=document.getElementById('sambok-pause');"
-                + "if(!s){s=document.createElement('style');s.id='sambok-pause';"
-                + "document.head.appendChild(s)}"
+                + "if(!s){s=document.createElementNS('http://www.w3.org/2000/svg','style');"
+                + "s.setAttribute('id','sambok-pause');"
+                + "document.documentElement.appendChild(s)}"
                 + "s.textContent='" + css + "'})()";
         sceneView.evaluateJavascript(js, null);
     }

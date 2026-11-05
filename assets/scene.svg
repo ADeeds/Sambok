@@ -352,26 +352,34 @@
 
   
   
-  <g class="flake-1" transform="translate(180, 270)">
+  <g transform="translate(180, 270)">
+    <g class="flake-1">
     <circle cx="0" cy="0" r="4" fill="#E0F2FE" filter="url(#soft-glow)" />
     <path d="M -7 0 L 7 0 M 0 -7 L 0 7" stroke="#BAE6FD" stroke-width="2" />
   </g>
+  </g>
 
   
-  <g class="flake-2" transform="translate(220, 330)">
+  <g transform="translate(220, 330)">
+    <g class="flake-2">
     <circle cx="0" cy="0" r="3" fill="#FFFFFF" filter="url(#soft-glow)" />
     <path d="M -5 0 L 5 0 M 0 -5 L 0 5" stroke="#7DD3FC" stroke-width="1.8" />
   </g>
-
-  
-  <g class="flake-3" transform="translate(150, 370)">
-    <circle cx="0" cy="0" r="4.5" fill="#BAE6FD" filter="url(#soft-glow)" />
-    <path d="M -6 -6 L 6 6 M -6 6 L 6 -6" stroke="#E0F2FE" stroke-width="2" />
   </g>
 
   
-  <g class="flake-4" transform="translate(260, 290)">
+  <g transform="translate(150, 370)">
+    <g class="flake-3">
+    <circle cx="0" cy="0" r="4.5" fill="#BAE6FD" filter="url(#soft-glow)" />
+    <path d="M -6 -6 L 6 6 M -6 6 L 6 -6" stroke="#E0F2FE" stroke-width="2" />
+  </g>
+  </g>
+
+  
+  <g transform="translate(260, 290)">
+    <g class="flake-4">
     <circle cx="0" cy="0" r="3.5" fill="#38BDF8" filter="url(#soft-glow)" />
+  </g>
   </g>
 
   
