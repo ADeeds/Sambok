@@ -1,19 +1,35 @@
 package com.sambok;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+
+import java.util.List;
 
 /**
  * The dog screen: the whole app.
@@ -39,24 +55,6 @@ public class SambokActivity extends Activity {
 
     private static final String TAG = "Sambok";
 
-    /**
-     * State of charge, in percent, at which the car stops discharging: the V2X discharge limit.
-     *
-     * <p>The car publishes no getter for it, so it is written here by hand and must match the
-     * value the car's own EV screen shows. This is the one number on the screen to tune on the
-     * car; the countdown is meaningless if it is wrong.
-     */
-    private static final double CUTOFF_PERCENT = 20.0;
-
-    /**
-     * The car reports climate draw in units of 10 W ({@code HEVFlag.DATC_CLMTPWRCNSMPTN_W}).
-     *
-     * <p>Provisional: on a run with the A/C on low and set near ambient the flag plateaued at
-     * 15-18, while the real draw is a couple of hundred watts. Confirm it against an hour of SOC
-     * drop before trusting the countdown to the minute.
-     */
-    private static final double CLIMATE_W_SCALE = 10.0;
-
     /** The pack's usable capacity in kWh for this car; a constant, not read from the car. */
     private static final double CAPACITY_KWH = 77.4;
 
@@ -75,6 +73,8 @@ public class SambokActivity extends Activity {
     }
 
     private final CarClient client = new CarClient();
+    private final BluetoothMonitor bluetooth = new BluetoothMonitor();
+    private final AutoUnlock autoUnlock = new AutoUnlock();
     private final Countdown countdownModel = new Countdown();
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -86,8 +86,24 @@ public class SambokActivity extends Activity {
     /** "A/C set to 73°F": the driver set-point, while Utility Mode runs and the car is fresh. */
     private TextView setpoint;
     private TextView status;
+    private View autoUnlockPanel;
+    private TextView autoUnlockStatus;
+    private TextView autoUnlockRssi;
+    private RssiBarView autoUnlockBar;
     private View strip;
+    private View preflight;
+    private TextView preflightClimateValue;
+    private TextView preflightClimateSub;
+    private TextView preflightBatteryValue;
+    private View preflightBatterySubRow;
+    private TextView preflightBatterySub;
+    private Button preflightLimitButton;
+    private TextView preflightBatterySubClose;
+    private TextView preflightCheckCharger;
+    private TextView preflightCheckReady;
+    private Button preflightAutoUnlockButton;
     private View scene;
+    private View sceneBanner;
     /** Shows assets/scene.svg; KitKat's Chromium WebView runs the artwork's own animations. */
     private WebView sceneView;
     /** The artwork is playing, rather than parked on a still frame. */
@@ -98,6 +114,8 @@ public class SambokActivity extends Activity {
     private Screen screen = Screen.CONNECTING;
     /** A car callback has arrived, so staleness and the countdown mean something. */
     private boolean sawCar;
+    /** Whether the initial power draw sample has been seeded into {@link #countdownModel}. */
+    private boolean seededDraw;
     /**
      * The driver has tapped: the screen follows the car only when this is false. Cleared as soon
      * as the car reports a stopped Utility Mode, so it survives a pending tap and no longer.
@@ -112,6 +130,7 @@ public class SambokActivity extends Activity {
     private long connectAtMs;
     private long startingAtMs;
     private int ticks;
+    private int currentBatteryDrawableId;
     private boolean destroyed;
 
     @Override
@@ -131,8 +150,30 @@ public class SambokActivity extends Activity {
         countdownCaption = (TextView) findViewById(R.id.countdown_caption);
         setpoint = (TextView) findViewById(R.id.setpoint);
         status = (TextView) findViewById(R.id.status);
+        autoUnlockPanel = findViewById(R.id.auto_unlock_panel);
+        autoUnlockStatus = (TextView) findViewById(R.id.auto_unlock_status);
+        autoUnlockRssi = (TextView) findViewById(R.id.auto_unlock_rssi);
+        autoUnlockBar = (RssiBarView) findViewById(R.id.auto_unlock_bar);
+        autoUnlockBar.setLabels(
+                getString(R.string.auto_unlock_tick_arm),
+                getString(R.string.auto_unlock_tick_unlock));
         strip = findViewById(R.id.strip);
+        preflight = findViewById(R.id.preflight);
+        preflightClimateValue = (TextView) findViewById(R.id.preflight_climate_value);
+        preflightClimateSub = (TextView) findViewById(R.id.preflight_climate_sub);
+        preflightBatteryValue = (TextView) findViewById(R.id.preflight_battery_value);
+        preflightBatterySubRow = findViewById(R.id.preflight_battery_sub_row);
+        preflightBatterySub = (TextView) findViewById(R.id.preflight_battery_sub);
+        preflightLimitButton = (Button) findViewById(R.id.preflight_limit_button);
+        preflightLimitButton.setCompoundDrawablePadding(dp(6));
+        preflightLimitButton.setCompoundDrawablesWithIntrinsicBounds(
+                null, null, createDropdownArrowDrawable(), null);
+        preflightBatterySubClose = (TextView) findViewById(R.id.preflight_battery_sub_close);
+        preflightCheckCharger = (TextView) findViewById(R.id.preflight_check_charger);
+        preflightCheckReady = (TextView) findViewById(R.id.preflight_check_ready);
+        preflightAutoUnlockButton = (Button) findViewById(R.id.preflight_auto_unlock_button);
         scene = findViewById(R.id.scene);
+        sceneBanner = findViewById(R.id.scene_banner);
 
         // The scene is opaque artwork filling the pane, so nothing here needs a background.
         sceneView = (WebView) findViewById(R.id.scene_view);
@@ -166,6 +207,23 @@ public class SambokActivity extends Activity {
                 dismissDropped();
             }
         });
+        View.OnClickListener limitClickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showDischargeLimitDialog();
+            }
+        };
+        preflightLimitButton.setOnClickListener(limitClickListener);
+        preflightBatterySubRow.setOnClickListener(limitClickListener);
+        preflightAutoUnlockButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showAutoUnlockDialog();
+            }
+        });
+
+        bluetooth.start(this, onBluetoothChange);
+        autoUnlock.setTarget(bluetooth.targetAddress(), bluetooth.targetName());
 
         // The first frame is painted before binding, so the panel exists even if no callback ever
         // arrives; nothing is written to the car here. Utility Mode is only known from a callback,
@@ -184,9 +242,11 @@ public class SambokActivity extends Activity {
     }
 
     /**
-     * Starts or parks the artwork. KitKat's WebView is Chromium, so the SVG's own CSS keyframes run
-     * there; parking is one injected rule, which holds the drawing where it is rather than hiding
-     * it — the scene is only ever visible while dog mode runs.
+     * Starts or parks the artwork. The SVG uses native SMIL animations ({@code <animateTransform>}
+     * and {@code <animate>}) because KitKat's Chromium 30 WebView does not support unprefixed CSS
+     * {@code @keyframes} or CSS {@code transform-origin} on SVG elements; parking calls standard
+     * {@code SVGSVGElement.pauseAnimations()}, which holds the drawing where it is rather than
+     * hiding it — the scene is only ever visible while dog mode runs.
      */
     private void setSceneLive(boolean live) {
         if (sceneLive == live) {
@@ -200,16 +260,11 @@ public class SambokActivity extends Activity {
         if (sceneView == null || !sceneReady) {
             return;
         }
-        String css = sceneLive ? "" : "*{animation-play-state:paused !important}";
-        // The page is an SVG document, not HTML: it has no document.head (the car logged
-        // "Cannot call method 'appendChild' of null" on every load), and a plain createElement
-        // makes a namespace-less element that is never applied as CSS. The rule therefore goes in
-        // an SVG <style> appended to the root <svg> element.
-        String js = "(function(){var s=document.getElementById('sambok-pause');"
-                + "if(!s){s=document.createElementNS('http://www.w3.org/2000/svg','style');"
-                + "s.setAttribute('id','sambok-pause');"
-                + "document.documentElement.appendChild(s)}"
-                + "s.textContent='" + css + "'})()";
+        String js = sceneLive
+                ? "(function(){var r=document.documentElement;"
+                        + "if(r&&r.unpauseAnimations)r.unpauseAnimations()})()"
+                : "(function(){var r=document.documentElement;"
+                        + "if(r&&r.pauseAnimations)r.pauseAnimations()})()";
         sceneView.evaluateJavascript(js, null);
     }
 
@@ -223,6 +278,7 @@ public class SambokActivity extends Activity {
     protected void onDestroy() {
         destroyed = true;
         handler.removeCallbacks(tick);
+        bluetooth.stop();
         client.unbind();
         if (sceneView != null) {
             sceneView.destroy();
@@ -239,10 +295,19 @@ public class SambokActivity extends Activity {
      * <p>Returns -1 when nothing usable is known, which the caller renders as a dash.
      */
     private int estimateMinutes(CarState state) {
+        int usable = Estimate.usableSocPercent(state.socPercent, state.cutoffPercent);
+        if (usable == 0) {
+            return 0;
+        }
+        int modelMin = countdownModel.remainingMinutes(
+                state.socPercent, state.cutoffPercent, CAPACITY_KWH);
+        if (modelMin >= 0) {
+            return modelMin;
+        }
         if (Estimate.plausibleCarMinutes(state.remainingMin)) {
             return state.remainingMin;
         }
-        return countdownModel.remainingMinutes(state.socPercent, CUTOFF_PERCENT, CAPACITY_KWH);
+        return -1;
     }
 
     /** Runs on the main thread whenever a car callback lands. */
@@ -253,6 +318,25 @@ public class SambokActivity extends Activity {
                 return;
             }
             sawCar = true;
+            if (!seededDraw) {
+                CarState state = client.state();
+                double watts = Estimate.drawWatts(state.dischargeW, state.climateW, state.otherW);
+                if (!Double.isNaN(watts) && watts > 0) {
+                    countdownModel.sample(watts / 1000.0);
+                    seededDraw = true;
+                }
+            }
+            paint();
+        }
+    };
+
+    /** Runs on the main thread whenever a Bluetooth ACL or RSSI event arrives. */
+    private final Runnable onBluetoothChange = new Runnable() {
+        @Override
+        public void run() {
+            if (destroyed) {
+                return;
+            }
             paint();
         }
     };
@@ -271,19 +355,23 @@ public class SambokActivity extends Activity {
                 return;
             }
             ticks++;
+            if (ticks % 2 == 0 && autoUnlock.isEnabled()) {
+                bluetooth.requestRssiPoll();
+            }
             CarState state = client.state();
             if (ticks % TICKS_PER_SAMPLE == 0) {
                 // Periodically request a refresh on the worker thread so reads stay current even
                 // when callbacks stop or are missing.
                 client.requestRefresh();
-                if (screen == Screen.RUNNING) {
+                if (sawCar) {
                     double watts = Estimate.drawWatts(state.dischargeW, state.climateW,
-                            CLIMATE_W_SCALE, state.otherW);
+                            state.otherW);
                     countdownModel.sample(watts / 1000.0);
-                    Log.i(TAG, "estimate soc=" + state.socPercent + " climateRaw=" + state.climateW
-                            + " climateW=" + (state.climateW * CLIMATE_W_SCALE) + " otherW="
-                            + state.otherW + " dischargeW=" + state.dischargeW + " remainMin="
-                            + state.remainingMin + " minutes=" + estimateMinutes(state));
+                    Log.i(TAG, "estimate soc=" + state.socPercent + " cutoff=" + state.cutoffPercent
+                            + " climateW=" + state.climateW
+                            + " otherW=" + state.otherW + " dischargeW=" + state.dischargeW
+                            + " watts=" + watts + " remainMin=" + state.remainingMin
+                            + " minutes=" + estimateMinutes(state));
                 }
             }
             long now = SystemClock.uptimeMillis();
@@ -304,14 +392,13 @@ public class SambokActivity extends Activity {
         }
     };
 
-    /** One tap, one write: the enable or the disable, never both, never on a press-and-hold. */
+    /** One tap, one write: starts Utility Mode when off; exiting requires power-cycling the car. */
     private void tap() {
         if (writing || screen == Screen.STARTING || screen == Screen.CONNECTING) {
             return;
         }
-        if (Boolean.TRUE.equals(client.state().utilityOn)) {
-            stop();
-        } else {
+        CarState state = client.state();
+        if (!Boolean.TRUE.equals(state.utilityOn) && !state.charging) {
             start();
         }
     }
@@ -342,17 +429,6 @@ public class SambokActivity extends Activity {
         startingAtMs = SystemClock.uptimeMillis();
         paint();
         writeUtility(true);
-    }
-
-    private void stop() {
-        Log.i(TAG, "tap: disable");
-        failed = false;
-        driverChose = true;
-        writing = true;
-        writeStartedMs = SystemClock.uptimeMillis();
-        screen = Screen.OFF;
-        paint();
-        writeUtility(false);
     }
 
     /**
@@ -391,10 +467,6 @@ public class SambokActivity extends Activity {
         if (on && !confirmed) {
             // The car may still report it on: the deadline in the tick owns the outcome.
             Log.i(TAG, "enable not confirmed yet");
-        } else if (!on && !confirmed) {
-            // The car did not take the disable, so the screen follows what the car reports
-            // rather than claiming an off state that is not there.
-            driverChose = false;
         }
         paint();
     }
@@ -418,10 +490,13 @@ public class SambokActivity extends Activity {
      * <p>Reads {@link CarClient#state()}, a plain holder; it makes no binder call, so both the
      * callback path and the one-second tick can use it.
      */
+    // Resources.getColor(int) is deprecated from API 23; API 19 has only the single-arg overload.
+    @SuppressWarnings("deprecation")
     private void paint() {
         CarState state = client.state();
         Boolean reported = state.utilityOn;
         boolean on = Boolean.TRUE.equals(reported);
+        boolean charging = state.charging;
         boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
 
         if (Boolean.FALSE.equals(reported)) {
@@ -433,6 +508,11 @@ public class SambokActivity extends Activity {
         if (screen == Screen.STARTING) {
             if (on) {
                 screen = Screen.RUNNING;
+            } else if (charging) {
+                // The VCU refuses Utility Mode while charging; abort the start wait immediately.
+                writing = false;
+                driverChose = false;
+                screen = Screen.OFF;
             }
         } else if (screen == Screen.CONNECTING) {
             // Nothing is claimed until the first report; the tick ends the wait if none arrives.
@@ -455,18 +535,33 @@ public class SambokActivity extends Activity {
             failed = false;
         }
 
-        toggle.setEnabled(!writing && screen != Screen.STARTING && screen != Screen.CONNECTING);
+        boolean blockedByCharge = charging && !on;
+        // Once Utility Mode is on, the head unit cannot turn it off (the car must be power-cycled),
+        // so the button is disabled while running and only re-enables if Utility Mode drops.
+        toggle.setEnabled(!on && !writing && !blockedByCharge
+                && screen != Screen.STARTING && screen != Screen.CONNECTING);
         // The label follows the car, not the scene: after a dropped Utility Mode the scene stays
         // up but the button offers the enable again.
         toggle.setText(screen == Screen.STARTING ? R.string.toggle_starting
                 : on ? R.string.toggle_on : R.string.toggle_off);
 
-        // The countdown is only claimed while the scene is up; elsewhere it is not shown.
+        boolean active = screen == Screen.RUNNING && on;
+        countdownCaption.setText(active
+                ? R.string.countdown_caption : R.string.countdown_caption_inactive);
+
+        // The countdown is only claimed on the left panel while the scene is up; elsewhere it is
+        // not shown there (the pre-flight card on the right shows the battery preview instead).
+        int estMinutes = fresh ? estimateMinutes(state) : -1;
         int countdownVisibility = screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE;
-        countdownCaption.setVisibility(countdownVisibility);
         countdown.setVisibility(countdownVisibility);
-        countdown.setText(fresh ? Countdown.format(estimateMinutes(state))
-                : getString(R.string.countdown_unknown));
+        String remaining = fresh ? Countdown.format(estMinutes)
+                : getString(R.string.countdown_unknown);
+        countdown.setText(remaining);
+        int batteryIconId = batteryDrawableId(Countdown.batteryIcon(estMinutes));
+        if (batteryIconId != currentBatteryDrawableId) {
+            currentBatteryDrawableId = batteryIconId;
+            countdown.setCompoundDrawablesWithIntrinsicBounds(batteryIconId, 0, 0, 0);
+        }
 
         // The set-point is only claimed while the climate is actually being run: a dropped Utility
         // Mode still has a set-point, but "A/C set to 73°F" over a stopped climate would mislead
@@ -479,22 +574,171 @@ public class SambokActivity extends Activity {
         }
         setpoint.setVisibility(showSetpoint ? View.VISIBLE : View.INVISIBLE);
 
+        // Right pane: show the animated dog scene only while Utility Mode is running; otherwise
+        // show the pre-flight summary cards and checklist.
         scene.setVisibility(screen == Screen.RUNNING ? View.VISIBLE : View.INVISIBLE);
+        preflight.setVisibility(screen == Screen.RUNNING ? View.GONE : View.VISIBLE);
+        if (screen != Screen.RUNNING) {
+            preflightClimateValue.setText(fresh && setTo != null
+                    ? setTo : getString(R.string.countdown_unknown));
+            String passengerSetTo = Setpoint.format(state.passengerSetpointCelsius,
+                    state.passengerSetpointFahrenheit, state.isCelsius);
+            String outside = Setpoint.formatAmbient(state.ambientCelsius,
+                    state.ambientFahrenheit, state.isCelsius);
+            if (fresh && passengerSetTo != null && outside != null) {
+                preflightClimateSub.setText(getString(
+                        R.string.preflight_climate_passenger_outside, passengerSetTo, outside));
+            } else if (fresh && passengerSetTo != null) {
+                preflightClimateSub.setText(getString(
+                        R.string.preflight_climate_passenger, passengerSetTo));
+            } else if (fresh && setTo != null && outside != null) {
+                preflightClimateSub.setText(getString(
+                        R.string.preflight_climate_driver_only_outside, outside));
+            } else if (fresh && setTo != null) {
+                preflightClimateSub.setText(R.string.preflight_climate_driver_only);
+            } else if (fresh && outside != null) {
+                preflightClimateSub.setText(getString(
+                        R.string.preflight_climate_outside, outside));
+            } else {
+                preflightClimateSub.setText(R.string.preflight_climate_default_sub);
+            }
+
+            String heroRuntime = !fresh ? getString(R.string.countdown_unknown)
+                    : estMinutes == 0 ? getString(R.string.preflight_battery_zero_minutes)
+                    : Countdown.format(estMinutes);
+            preflightBatteryValue.setText(heroRuntime);
+            boolean lowRuntime = fresh && Estimate.isLowRuntime(estMinutes);
+            preflightBatteryValue.setTextColor(getResources().getColor(
+                    lowRuntime ? R.color.danger : R.color.ink));
+
+            int cutoffInt = (int) Math.round(state.cutoffPercent);
+            preflightLimitButton.setText(getString(
+                    R.string.preflight_battery_limit_button, Integer.valueOf(cutoffInt)));
+            int usable = fresh
+                    ? Estimate.usableSocPercent(state.socPercent, state.cutoffPercent) : -1;
+            if (usable >= 0) {
+                int socInt = (int) Math.round(state.socPercent);
+                preflightBatterySub.setText(getString(R.string.preflight_battery_usable_prefix,
+                        Integer.valueOf(usable), Integer.valueOf(socInt)));
+                preflightBatterySubClose.setVisibility(View.VISIBLE);
+            } else {
+                preflightBatterySub.setText(R.string.preflight_battery_limit_prefix);
+                preflightBatterySubClose.setVisibility(View.GONE);
+            }
+
+            preflightCheckCharger.setText(charging
+                    ? R.string.preflight_check_charging
+                    : R.string.preflight_check_unplugged);
+            preflightCheckCharger.setTextColor(getResources().getColor(
+                    charging ? R.color.amber : R.color.ready));
+
+            Boolean readyAndParked = fresh ? state.isReadyAndParked() : null;
+            if (Boolean.TRUE.equals(readyAndParked)) {
+                preflightCheckReady.setText(R.string.preflight_check_ready_ok);
+                preflightCheckReady.setTextColor(getResources().getColor(R.color.ready));
+            } else if (Boolean.FALSE.equals(readyAndParked)) {
+                preflightCheckReady.setText(R.string.preflight_check_ready_warn);
+                preflightCheckReady.setTextColor(getResources().getColor(R.color.amber));
+            } else {
+                preflightCheckReady.setText(R.string.preflight_check_ready);
+                preflightCheckReady.setTextColor(getResources().getColor(R.color.ink));
+            }
+
+            if (!autoUnlock.isEnabled()) {
+                preflightAutoUnlockButton.setText(R.string.preflight_auto_unlock_off);
+            } else {
+                String btName = autoUnlock.targetName();
+                int rssi = bluetooth.targetRssiDbm();
+                if (bluetooth.isTargetConnected() && rssi != AutoUnlock.NO_RSSI) {
+                    preflightAutoUnlockButton.setText(getString(
+                            R.string.preflight_auto_unlock_on_rssi,
+                            btName, Integer.valueOf(rssi)));
+                } else if (bluetooth.isTargetConnected()) {
+                    preflightAutoUnlockButton.setText(getString(
+                            R.string.preflight_auto_unlock_on_connected, btName));
+                } else {
+                    preflightAutoUnlockButton.setText(getString(
+                            R.string.preflight_auto_unlock_on_away, btName));
+                }
+            }
+        }
+
+        long now = SystemClock.uptimeMillis();
+        if (autoUnlock.update(
+                screen == Screen.RUNNING,
+                bluetooth.isTargetConnected(),
+                bluetooth.targetRssiDbm(),
+                now)) {
+            triggerDoorUnlock();
+        }
+        if (screen == Screen.RUNNING && autoUnlock.isEnabled()) {
+            String btName = autoUnlock.targetName();
+            boolean btConnected = bluetooth.isTargetConnected();
+            int rssi = bluetooth.targetRssiDbm();
+            int readyColor = getResources().getColor(R.color.ready);
+            int amberColor = getResources().getColor(R.color.amber);
+            int inkColor = getResources().getColor(R.color.ink);
+            int mutedColor = getResources().getColor(R.color.muted);
+
+            autoUnlockPanel.setVisibility(View.VISIBLE);
+            int barColor;
+            if (autoUnlock.recentlyUnlocked(now)) {
+                autoUnlockStatus.setText(getString(R.string.auto_unlock_state_unlocked, btName));
+                autoUnlockStatus.setTextColor(readyColor);
+                barColor = readyColor;
+            } else if (autoUnlock.state() == AutoUnlock.State.ARMED) {
+                autoUnlockStatus.setText(getString(R.string.auto_unlock_state_armed, btName));
+                autoUnlockStatus.setTextColor(readyColor);
+                barColor = readyColor;
+            } else if (autoUnlock.state() == AutoUnlock.State.LEAVING) {
+                autoUnlockStatus.setText(getString(R.string.auto_unlock_state_leaving, btName));
+                autoUnlockStatus.setTextColor(amberColor);
+                barColor = amberColor;
+            } else {
+                autoUnlockStatus.setText(getString(R.string.auto_unlock_state_near, btName));
+                autoUnlockStatus.setTextColor(inkColor);
+                barColor = inkColor;
+            }
+
+            if (btConnected && rssi != AutoUnlock.NO_RSSI) {
+                autoUnlockRssi.setText(getString(
+                        R.string.auto_unlock_rssi_dbm, Integer.valueOf(rssi)));
+                autoUnlockRssi.setTextColor(inkColor);
+            } else if (btConnected) {
+                autoUnlockRssi.setText(R.string.auto_unlock_rssi_connected);
+                autoUnlockRssi.setTextColor(mutedColor);
+            } else {
+                autoUnlockRssi.setText(R.string.auto_unlock_rssi_away);
+                autoUnlockRssi.setTextColor(mutedColor);
+            }
+
+            double barFraction = AutoUnlock.rssiToFraction(btConnected, rssi);
+            autoUnlockBar.setState(barFraction, barColor);
+        } else {
+            autoUnlockPanel.setVisibility(View.GONE);
+        }
 
         int statusId;
         if (screen == Screen.CONNECTING) {
             // Same wording as an enable in flight: the screen is waiting for the car either way.
             statusId = R.string.status_starting;
         } else if (screen == Screen.OFF) {
-            statusId = failed ? R.string.status_failed : R.string.status_off;
+            statusId = charging ? R.string.status_charging
+                    : failed ? R.string.status_failed : R.string.status_off;
         } else if (screen == Screen.STARTING) {
             statusId = fresh ? R.string.status_starting : R.string.status_stale;
         } else if (!fresh) {
             statusId = R.string.status_stale;
         } else {
-            statusId = on ? R.string.status_running : R.string.status_dropped;
+            statusId = on ? R.string.status_running
+                    : charging ? R.string.status_charging : R.string.status_dropped;
         }
         status.setText(statusId);
+        boolean statusWarn = (screen == Screen.OFF && (charging || failed))
+                || (screen == Screen.RUNNING && (!on || !fresh));
+        status.setTextColor(getResources().getColor(statusWarn ? R.color.amber : R.color.muted));
+        boolean hideNormalRunningStatus = (screen == Screen.RUNNING && on && fresh);
+        status.setVisibility(hideNormalRunningStatus ? View.GONE : View.VISIBLE);
 
         // The amber strip is the only warning this version has: Utility Mode dropped while the
         // scene is up, or the callbacks stopped so the panel can no longer be trusted. It is
@@ -510,6 +754,287 @@ public class SambokActivity extends Activity {
 
         // The artwork only moves while dog mode is actually running and trusted; otherwise it is a
         // still frame, and when the screen is off the whole scene is invisible anyway.
-        setSceneLive(screen == Screen.RUNNING && !warn);
+        boolean liveScene = screen == Screen.RUNNING && !warn;
+        sceneBanner.setVisibility(liveScene ? View.VISIBLE : View.INVISIBLE);
+        setSceneLive(liveScene);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void showAutoUnlockDialog() {
+        final List<BluetoothMonitor.DeviceInfo> devices = bluetooth.pairedDevices();
+        int checked = 0;
+        String currentAddr = autoUnlock.targetAddress();
+        for (int i = 0; i < devices.size(); i++) {
+            BluetoothMonitor.DeviceInfo d = devices.get(i);
+            if (currentAddr != null && currentAddr.equalsIgnoreCase(d.address)) {
+                checked = i + 1;
+            }
+        }
+
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        int padH = dp(28);
+        int padV = dp(24);
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.card_backdrop);
+        card.setPadding(padH, padV, padH, padV);
+        card.setMinimumWidth(dp(520));
+
+        TextView title = new TextView(this);
+        title.setText(R.string.auto_unlock_dialog_title);
+        title.setAllCaps(true);
+        title.setTextColor(getResources().getColor(R.color.muted));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.bottomMargin = dp(12);
+        card.addView(title, titleLp);
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        int inkColor = getResources().getColor(R.color.ink);
+        int readyColor = getResources().getColor(R.color.ready);
+        int dividerColor = 0xFF232D38;
+
+        int totalItems = devices.size() + 1;
+        for (int i = 0; i < totalItems; i++) {
+            if (i > 0) {
+                View divider = new View(this);
+                divider.setBackgroundColor(dividerColor);
+                list.addView(divider, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+            }
+            final int index = i;
+            boolean isSelected = (i == checked);
+            String label;
+            if (i == 0) {
+                label = getString(R.string.auto_unlock_option_off);
+            } else {
+                BluetoothMonitor.DeviceInfo d = devices.get(i - 1);
+                label = d.connected
+                        ? getString(R.string.auto_unlock_device_connected, d.name)
+                        : d.name;
+            }
+            TextView row = new TextView(this);
+            row.setText((isSelected ? "✓   " : "○   ") + label);
+            row.setTextColor(isSelected ? readyColor : inkColor);
+            row.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setMinHeight(dp(56));
+            row.setPadding(dp(8), dp(12), dp(8), dp(12));
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (index <= 0 || index > devices.size()) {
+                        bluetooth.selectDevice(null, null);
+                        autoUnlock.setTarget(null, null);
+                    } else {
+                        BluetoothMonitor.DeviceInfo chosen = devices.get(index - 1);
+                        bluetooth.selectDevice(chosen.address, chosen.name);
+                        autoUnlock.setTarget(chosen.address, chosen.name);
+                    }
+                    dialog.dismiss();
+                    paint();
+                }
+            });
+            list.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
+        scroll.addView(list, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        card.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        dialog.setContentView(card);
+        dialog.show();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void showDischargeLimitDialog() {
+        CarState state = client.state();
+        boolean fresh = sawCar && state.isFresh(SystemClock.uptimeMillis());
+        int currentCutoff = (int) Math.round(state.cutoffPercent);
+        double soc = fresh ? state.socPercent : Double.NaN;
+
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        int padH = dp(28);
+        int padV = dp(24);
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.card_backdrop);
+        card.setPadding(padH, padV, padH, padV);
+        card.setMinimumWidth(dp(460));
+
+        TextView title = new TextView(this);
+        title.setText(R.string.discharge_limit_dialog_title);
+        title.setAllCaps(true);
+        title.setTextColor(getResources().getColor(R.color.muted));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.bottomMargin = dp(12);
+        card.addView(title, titleLp);
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        int inkColor = getResources().getColor(R.color.ink);
+        int readyColor = getResources().getColor(R.color.ready);
+        int dividerColor = 0xFF232D38;
+
+        int[] presets = Estimate.CUTOFF_PRESETS_PERCENT;
+        for (int i = 0; i < presets.length; i++) {
+            if (i > 0) {
+                View divider = new View(this);
+                divider.setBackgroundColor(dividerColor);
+                list.addView(divider, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+            }
+            final int preset = presets[i];
+            boolean isSelected = (preset == currentCutoff);
+            int usable = Estimate.usableSocPercent(soc, preset);
+            String label = usable >= 0
+                    ? getString(R.string.discharge_limit_option_with_usable,
+                            Integer.valueOf(preset), Integer.valueOf(usable))
+                    : getString(R.string.discharge_limit_option, Integer.valueOf(preset));
+            TextView row = new TextView(this);
+            row.setText((isSelected ? "✓   " : "○   ") + label);
+            row.setTextColor(isSelected ? readyColor : inkColor);
+            row.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setMinHeight(dp(52));
+            row.setPadding(dp(8), dp(10), dp(8), dp(10));
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                    writeDischargeLimit(preset);
+                }
+            });
+            list.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
+        scroll.addView(list, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        card.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        dialog.setContentView(card);
+        dialog.show();
+    }
+
+    private void writeDischargeLimit(final int percent) {
+        client.state().cutoffPercent = percent;
+        paint();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    client.setDischargeLimitPercent(percent);
+                } catch (RuntimeException e) {
+                    Log.w(TAG, "setDischargeLimitPercent(" + percent + ") failed", e);
+                }
+            }
+        }, "sambok-limit").start();
+    }
+
+    private static int batteryDrawableId(Countdown.BatteryIcon icon) {
+        switch (icon) {
+            case HALF:
+                return R.drawable.battery_icon_half;
+            case AMBER:
+                return R.drawable.battery_icon_amber;
+            case RED:
+                return R.drawable.battery_icon_red;
+            case FULL:
+            default:
+                return R.drawable.battery_icon;
+        }
+    }
+
+    /**
+     * Draws a downward caret triangle on Canvas so the discharge limit button never depends on the
+     * head unit's API 19 system font having {@code U+25BE} ({@code ▾}).
+     */
+    @SuppressWarnings("deprecation")
+    private Drawable createDropdownArrowDrawable() {
+        final int w = dp(10);
+        final int h = dp(6);
+        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(getResources().getColor(R.color.ink));
+        final Path path = new Path();
+        return new Drawable() {
+            @Override
+            public void draw(Canvas canvas) {
+                android.graphics.Rect b = getBounds();
+                path.reset();
+                path.moveTo(b.left, b.top);
+                path.lineTo(b.right, b.top);
+                path.lineTo(b.exactCenterX(), b.bottom);
+                path.close();
+                canvas.drawPath(path, paint);
+            }
+
+            @Override
+            public int getIntrinsicWidth() {
+                return w;
+            }
+
+            @Override
+            public int getIntrinsicHeight() {
+                return h;
+            }
+
+            @Override
+            public void setAlpha(int alpha) {
+                paint.setAlpha(alpha);
+            }
+
+            @Override
+            public void setColorFilter(ColorFilter colorFilter) {
+                paint.setColorFilter(colorFilter);
+            }
+
+            @Override
+            public int getOpacity() {
+                return PixelFormat.TRANSLUCENT;
+            }
+        };
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void triggerDoorUnlock() {
+        Log.i(TAG, "Auto-unlock triggered for " + autoUnlock.targetName());
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    client.unlockDoors();
+                } catch (RuntimeException e) {
+                    Log.w(TAG, "unlockDoors failed", e);
+                }
+            }
+        }, "sambok-unlock").start();
     }
 }

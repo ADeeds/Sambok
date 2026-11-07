@@ -7,4 +7,6 @@
     <color name="ink">#F4F6F8</color>
     <color name="muted">#8D99A6</color>
     <color name="amber">#FFB300</color>
+    <color name="danger">#FF5252</color>
+    <color name="ready">#4ADE80</color>
 </resources>

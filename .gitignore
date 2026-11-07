@@ -3,6 +3,12 @@ probe.txt
 build/
 dist/
 .sambok.keystore
-usb/
 sambok-run.txt
 sambok-run2.txt
+art/
+notes/
+docs/plans/
+docs/specs/
+src/app/FanView.java
+src/pure/Panel.java
+tests/PanelTest.java

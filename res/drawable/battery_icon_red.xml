@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Battery shell -->
+    <item
+        android:left="0dp"
+        android:top="0dp"
+        android:right="4dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <size
+                android:width="34dp"
+                android:height="20dp" />
+            <corners android:radius="4dp" />
+            <stroke
+                android:width="2.5dp"
+                android:color="@color/ink" />
+        </shape>
+    </item>
+    <!-- Positive terminal nub -->
+    <item
+        android:left="34dp"
+        android:top="5dp"
+        android:right="0dp"
+        android:bottom="5dp">
+        <shape android:shape="rectangle">
+            <size
+                android:width="4dp"
+                android:height="10dp" />
+            <corners
+                android:topRightRadius="2dp"
+                android:bottomRightRadius="2dp" />
+            <solid android:color="@color/ink" />
+        </shape>
+    </item>
+    <!-- Critical red charge fill (7dp of 24dp interior so color stays bold and visible) -->
+    <item
+        android:left="5dp"
+        android:top="5dp"
+        android:right="26dp"
+        android:bottom="5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="1.5dp" />
+            <solid android:color="@color/danger" />
+        </shape>
+    </item>
+</layer-list>

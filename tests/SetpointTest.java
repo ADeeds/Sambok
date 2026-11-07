@@ -30,6 +30,19 @@ public final class SetpointTest {
         Check.t("below celsius floor", Setpoint.format(16.0, 0.0, true) == null, true);
         Check.t("above celsius ceiling", Setpoint.format(27.5, 0.0, true) == null, true);
 
+        // Outside (ambient) temperature formatting in the car's unit.
+        Check.t("ambient fahrenheit from car", Setpoint.formatAmbient(Double.NaN, 70.0, false), "70\u00B0F");
+        Check.t("ambient celsius from car", Setpoint.formatAmbient(21.0, Double.NaN, true), "21\u00B0C");
+        Check.t("ambient subzero celsius", Setpoint.formatAmbient(-5.0, 23.0, true), "-5\u00B0C");
+        Check.t("ambient subzero fahrenheit", Setpoint.formatAmbient(-20.0, -4.0, false), "-4\u00B0F");
+        Check.t("ambient rounds half degree", Setpoint.formatAmbient(21.6, 70.9, true), "22\u00B0C");
+        Check.t("ambient NaN celsius", Setpoint.formatAmbient(Double.NaN, 70.0, true) == null, true);
+        Check.t("ambient NaN fahrenheit", Setpoint.formatAmbient(21.0, Double.NaN, false) == null, true);
+        Check.t("ambient below floor celsius", Setpoint.formatAmbient(-41.0, 0.0, true) == null, true);
+        Check.t("ambient above ceiling celsius", Setpoint.formatAmbient(61.0, 0.0, true) == null, true);
+        Check.t("ambient below floor fahrenheit", Setpoint.formatAmbient(0.0, -41.0, false) == null, true);
+        Check.t("ambient above ceiling fahrenheit", Setpoint.formatAmbient(0.0, 141.0, false) == null, true);
+
         Check.done("SetpointTest");
     }
 }

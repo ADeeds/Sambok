@@ -24,8 +24,14 @@ ZIP="$DIST/sambok.zip"
 STAGE=$(mktemp -d) || exit 2
 trap 'rm -rf "$STAGE"' EXIT HUP INT TERM
 
+if [ -s "$ROOT/build/version.txt" ]; then
+    PKG_VERSION=$(cat "$ROOT/build/version.txt")
+else
+    PKG_VERSION="1.0.$(date +%m%d.%H%M%S)"
+fi
+
 mkdir -p "$STAGE/app"
-cp "$DESC" "$STAGE/NEMESIS.data"
+sed "s/^package-version=1\.0$/package-version=$PKG_VERSION/" "$DESC" > "$STAGE/NEMESIS.data"
 cp "$APK" "$STAGE/app/Sambok.apk"
 
 rm -rf "$DIST"

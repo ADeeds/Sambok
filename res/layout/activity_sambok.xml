@@ -43,32 +43,34 @@
                 android:id="@+id/countdown_caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/countdown_caption"
+                android:text="@string/countdown_caption_inactive"
                 android:textAllCaps="true"
                 android:textColor="@color/muted"
-                android:textSize="16sp"
+                android:textSize="16sp" />
+
+            <!-- What the A/C is set to, in the car's unit; shown only while Utility Mode runs.
+                 Hero line above the battery countdown; one line only so it never wraps. -->
+            <TextView
+                android:id="@+id/setpoint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textSize="52sp"
+                android:textStyle="bold"
                 android:visibility="invisible" />
 
             <TextView
                 android:id="@+id/countdown"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/countdown_unknown"
-                android:textColor="@color/ink"
-                android:textSize="56sp"
-                android:textStyle="bold"
-                android:visibility="invisible" />
-
-            <!-- What the A/C is set to, in the car's unit; shown only while Utility Mode runs.
-                 One line only, so it can never wrap and push the toggle down. -->
-            <TextView
-                android:id="@+id/setpoint"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:ellipsize="end"
-                android:maxLines="1"
+                android:drawableLeft="@drawable/battery_icon"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical"
+                android:text="@string/countdown_unknown"
                 android:textColor="@color/ink"
                 android:textSize="32sp"
                 android:visibility="invisible" />
@@ -77,19 +79,61 @@
                 android:id="@+id/toggle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="36dp"
                 android:minHeight="72dp"
                 android:text="@string/toggle_off"
-                android:textSize="22sp" />
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="20dp"
                 android:text="@string/status_off"
                 android:textColor="@color/muted"
                 android:textSize="18sp" />
+
+            <LinearLayout
+                android:id="@+id/auto_unlock_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/auto_unlock_status"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/ink"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/auto_unlock_rssi"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="12dp"
+                        android:textColor="@color/ink"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <com.sambok.RssiBarView
+                    android:id="@+id/auto_unlock_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" />
+            </LinearLayout>
 
             <!-- Shown only while the dropped warning is up: acknowledges it and returns the
                  screen to off without writing anything to the car. -->
@@ -105,24 +149,233 @@
         </LinearLayout>
 
         <FrameLayout
-            android:id="@+id/scene"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="5"
-            android:visibility="invisible">
+            android:layout_weight="5">
 
-            <WebView
-                android:id="@+id/scene_view"
+            <!-- Shown while Utility Mode is not running: live climate & battery cards plus
+                 the leaving checklist. Swapped out for the dog scene when running. -->
+            <LinearLayout
+                android:id="@+id/preflight"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@android:color/transparent" />
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                android:paddingLeft="44dp"
+                android:paddingTop="20dp"
+                android:paddingRight="56dp"
+                android:paddingBottom="20dp">
 
-            <!-- Wipes the seam where the panel's ramp meets the artwork's own background. -->
-            <View
-                android:layout_width="28dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginRight="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/card_backdrop"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/preflight_climate_label"
+                            android:textAllCaps="true"
+                            android:textColor="@color/muted"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/preflight_climate_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/countdown_unknown"
+                            android:textColor="@color/ink"
+                            android:textSize="44sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/preflight_climate_sub"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/preflight_climate_default_sub"
+                            android:textColor="@color/muted"
+                            android:textSize="18sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/card_backdrop"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/preflight_battery_label"
+                            android:textAllCaps="true"
+                            android:textColor="@color/muted"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/preflight_battery_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/countdown_unknown"
+                            android:textColor="@color/ink"
+                            android:textSize="44sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/preflight_battery_sub_row"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/preflight_battery_sub"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="@string/preflight_battery_limit_prefix"
+                                android:textColor="@color/muted"
+                                android:textSize="18sp" />
+
+                            <Button
+                                android:id="@+id/preflight_limit_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/limit_button_backdrop"
+                                android:minHeight="0dp"
+                                android:minWidth="0dp"
+                                android:paddingLeft="10dp"
+                                android:paddingTop="3dp"
+                                android:paddingRight="10dp"
+                                android:paddingBottom="3dp"
+                                android:textColor="@color/ink"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/preflight_battery_sub_close"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginLeft="2dp"
+                                android:text=")"
+                                android:textColor="@color/muted"
+                                android:textSize="18sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/card_backdrop"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preflight_checklist_label"
+                        android:textAllCaps="true"
+                        android:textColor="@color/muted"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/preflight_check_charger"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/preflight_check_unplugged"
+                        android:textColor="@color/ready"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:id="@+id/preflight_check_ready"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/preflight_check_ready"
+                        android:textColor="@color/ink"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/preflight_check_lock"
+                        android:textColor="@color/ink"
+                        android:textSize="20sp" />
+
+                    <Button
+                        android:id="@+id/preflight_auto_unlock_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="58dp"
+                        android:text="@string/preflight_auto_unlock_off"
+                        android:textSize="18sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/scene"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="left"
-                android:background="@drawable/seam_feather" />
+                android:visibility="invisible">
+
+                <WebView
+                    android:id="@+id/scene_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent" />
+
+                <!-- Wipes the seam where the panel's ramp meets the artwork's own background. -->
+                <View
+                    android:layout_width="28dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="left"
+                    android:background="@drawable/seam_feather" />
+
+                <TextView
+                    android:id="@+id/scene_banner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_marginTop="36dp"
+                    android:background="@drawable/card_backdrop"
+                    android:paddingLeft="28dp"
+                    android:paddingTop="12dp"
+                    android:paddingRight="28dp"
+                    android:paddingBottom="12dp"
+                    android:text="@string/scene_banner"
+                    android:textColor="@color/ink"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>

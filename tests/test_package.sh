@@ -47,5 +47,8 @@ if [ -f "$ZIP" ] && [ -f "$APK" ] && unzip -p "$ZIP" app/Sambok.apk 2>/dev/null 
 fi
 t "apk inside the package is the built apk" "$same" "yes"
 
+stamped=$(unzip -p "$ZIP" NEMESIS.data 2>/dev/null | grep -E '^package-version=1\.0\.[0-9]{4}\.[0-9]{6}$' | wc -l | tr -d ' ')
+t "descriptor carries timestamped package-version" "$stamped" "1"
+
 echo "$passed passed, $failed failed"
 [ "$failed" -eq 0 ]

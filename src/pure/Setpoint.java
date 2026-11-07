@@ -7,10 +7,10 @@ package com.sambok;
  * car rounds each itself (22.5 °C arrives alongside 73 °F, not 72.5). Showing the car's own value
  * for the car's own unit means the screen agrees with the climate panel to the digit.
  *
- * <p>The state int that accompanies each value never carries the {@code -1} "invalid" marker on
- * this unit (only 255 or 65535 were seen), so it cannot say whether a value is real. A plausible
- * range stands in for it: anything outside, including LO/HI or an unset zero, reads as unknown and
- * the line is not shown.
+ * <p>Each value is accompanied by a {@code DATCConstants$TemperatureDisplayState} int ({@code 65535}
+ * when active, {@code 255} when blank such as the passenger zone in Driver Only mode), which
+ * {@link CarClient} maps to {@code NaN} when not active. A plausible range check here also guards
+ * against LO/HI or unset values.
  */
 public final class Setpoint {
 
@@ -28,6 +28,12 @@ public final class Setpoint {
      */
     static final double MIN_FAHRENHEIT = 62.0;
     static final double MAX_FAHRENHEIT = 80.0;
+
+    /** Plausible outside (ambient) temperatures, inclusive. */
+    static final double MIN_AMBIENT_CELSIUS = -40.0;
+    static final double MAX_AMBIENT_CELSIUS = 60.0;
+    static final double MIN_AMBIENT_FAHRENHEIT = -40.0;
+    static final double MAX_AMBIENT_FAHRENHEIT = 140.0;
 
     private Setpoint() {
     }
@@ -48,6 +54,23 @@ public final class Setpoint {
             return number + "\u00B0C";
         }
         if (!plausible(fahrenheit, MIN_FAHRENHEIT, MAX_FAHRENHEIT)) {
+            return null;
+        }
+        return Units.format((int) Math.round(fahrenheit), false);
+    }
+
+    /**
+     * The outside (ambient) temperature in the car's own unit, e.g. {@code 70°F} or {@code 21°C};
+     * {@code null} when the value for the car's unit is unknown or implausible.
+     */
+    public static String formatAmbient(double celsius, double fahrenheit, boolean isCelsius) {
+        if (isCelsius) {
+            if (!plausible(celsius, MIN_AMBIENT_CELSIUS, MAX_AMBIENT_CELSIUS)) {
+                return null;
+            }
+            return Units.format((int) Math.round(celsius), true);
+        }
+        if (!plausible(fahrenheit, MIN_AMBIENT_FAHRENHEIT, MAX_AMBIENT_FAHRENHEIT)) {
             return null;
         }
         return Units.format((int) Math.round(fahrenheit), false);

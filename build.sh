@@ -72,8 +72,14 @@ echo "build.sh: build-tools $BUILD_TOOLS"
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex"
 
+VERSION_CODE=$(date +%s)
+VERSION_NAME="1.0.$(date +%m%d.%H%M%S)"
+printf '%s\n' "$VERSION_NAME" > "$OUT/version.txt"
+
 # 1. Manifest and resources into an APK, and R.java out of it for the compiler.
 "$AAPT" package -f -m \
+    --version-code "$VERSION_CODE" \
+    --version-name "$VERSION_NAME" \
     -J "$OUT/gen" \
     -M "$ROOT/AndroidManifest.xml" \
     -S "$ROOT/res" \

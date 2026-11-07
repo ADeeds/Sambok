@@ -4,20 +4,65 @@
 
     <!-- Left panel -->
     <string name="countdown_caption">Dog Mode</string>
+    <string name="countdown_caption_inactive">Dog Mode (Inactive)</string>
     <string name="countdown_unknown">—</string>
     <!-- %1$s is the set-point with its unit, e.g. 73°F. -->
     <string name="setpoint">A/C set to %1$s</string>
 
     <string name="toggle_off">Start Utility Mode</string>
     <string name="toggle_starting">Starting…</string>
-    <string name="toggle_on">Utility Mode on — tap to stop</string>
+    <string name="toggle_on">Utility Mode On (turn off car to end)</string>
 
     <string name="dismiss">Dismiss warning</string>
 
     <string name="status_off">tap to start</string>
+    <string name="status_charging">cannot start while charging — unplug first</string>
     <string name="status_starting">waiting for the car…</string>
     <string name="status_running">climate running</string>
     <string name="status_dropped">Utility Mode has stopped</string>
     <string name="status_stale">no update from the car</string>
     <string name="status_failed">Utility Mode did not start — check the car is on and in Park</string>
+
+    <!-- Right panel pre-flight summary (shown while Utility Mode is not running) -->
+    <string name="preflight_climate_label">Climate Set-Point</string>
+    <string name="preflight_climate_passenger">Passenger %1$s</string>
+    <string name="preflight_climate_passenger_outside">Passenger %1$s  •  Outside %2$s</string>
+    <string name="preflight_climate_driver_only">Driver only</string>
+    <string name="preflight_climate_driver_only_outside">Driver only  •  Outside %1$s</string>
+    <string name="preflight_climate_outside">Outside %1$s</string>
+    <string name="preflight_climate_default_sub">Driver climate target</string>
+    <string name="scene_banner">I\'m comfortable! Owner back soon</string>
+    <string name="preflight_battery_label">Battery &amp; Runtime</string>
+    <string name="preflight_battery_usable_prefix">%1$d%% usable (%2$d%% − </string>
+    <string name="preflight_battery_limit_prefix">Limit: </string>
+    <string name="preflight_battery_limit_button">%1$d%%</string>
+    <string name="preflight_battery_zero_minutes">0 m</string>
+    <string name="discharge_limit_dialog_title">Utility Mode Discharge Limit</string>
+    <string name="discharge_limit_option_with_usable">%1$d%%   (%2$d%% usable)</string>
+    <string name="discharge_limit_option">%1$d%%</string>
+    <string name="preflight_checklist_label">Before You Leave</string>
+    <string name="preflight_check_unplugged">✓   Charger unplugged</string>
+    <string name="preflight_check_charging">✕   Charging — unplug first</string>
+    <string name="preflight_check_ready_ok">✓   Car in READY and Park</string>
+    <string name="preflight_check_ready_warn">✕   Car in READY and Park</string>
+    <string name="preflight_check_ready">•   Car in READY and Park</string>
+    <string name="preflight_check_lock">•   Take key fob and lock doors from outside</string>
+
+    <!-- Bluetooth Auto-Unlock -->
+    <string name="preflight_auto_unlock_off">Auto-Unlock on Return: Off (tap to choose device)</string>
+    <string name="preflight_auto_unlock_on_rssi">Auto-Unlock on Return: %1$s (%2$d dBm)</string>
+    <string name="preflight_auto_unlock_on_connected">Auto-Unlock on Return: %1$s (connected)</string>
+    <string name="preflight_auto_unlock_on_away">Auto-Unlock on Return: %1$s (out of range)</string>
+    <string name="auto_unlock_dialog_title">Auto-Unlock When Returning</string>
+    <string name="auto_unlock_option_off">Off</string>
+    <string name="auto_unlock_device_connected">%1$s (connected)</string>
+    <string name="auto_unlock_state_unlocked">%1$s — Unlocked</string>
+    <string name="auto_unlock_state_armed">%1$s — Armed</string>
+    <string name="auto_unlock_state_leaving">%1$s — Leaving…</string>
+    <string name="auto_unlock_state_near">%1$s — Nearby</string>
+    <string name="auto_unlock_rssi_dbm">%1$d dBm</string>
+    <string name="auto_unlock_rssi_connected">Connected</string>
+    <string name="auto_unlock_rssi_away">Out of range</string>
+    <string name="auto_unlock_tick_arm">Arm</string>
+    <string name="auto_unlock_tick_unlock">Unlock</string>
 </resources>
